@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -7,7 +7,9 @@ import {
   type LudoColor,
   type LudoPlayer,
   type LudoPawn,
+  ludoAudio,
 } from '../store/useLudoStore';
+import { getPawnPosition } from '../lib/ludoBoard';
 import { useAuthStore } from '../store/useAuthStore';
 import { LanguageSelector } from '../components/LanguageSelector';
 
@@ -144,8 +146,11 @@ export function LudoGameRoom() {
     errorMsg,
     isRollingAnimation,
     soundEnabled,
+    toastMessage,
+    extraTurnBanner,
     connect,
     disconnect,
+    chooseColor,
     toggleBots,
     startGame,
     rollDice,
@@ -153,6 +158,7 @@ export function LudoGameRoom() {
     restartGame,
     toggleSound,
     clearError,
+    clearToast,
   } = useLudoStore();
 
   useEffect(() => {
@@ -163,6 +169,68 @@ export function LudoGameRoom() {
       disconnect();
     };
   }, [roomId, session, connect, disconnect]);
+
+  // Animação passo a passo do peão andando casa por casa
+  const [walkingPawn, setWalkingPawn] = useState<{
+    playerId: string;
+    pawnId: number;
+    color: LudoColor;
+    step: number;
+  } | null>(null);
+
+  const lastMoveKeyRef = useRef<string>('');
+
+  useEffect(() => {
+    const lm = gameState?.lastMove;
+    if (!lm) return;
+    const moveKey = `${lm.playerId}_${lm.pawnIndex}_${lm.fromStep}_${lm.toStep}_${lm.dice}`;
+    if (lastMoveKeyRef.current === moveKey) return;
+    lastMoveKeyRef.current = moveKey;
+
+    if (lm.fromStep === lm.toStep) return;
+
+    // Se saiu da garagem (fromStep === -1, toStep === 0)
+    if (lm.fromStep === -1) {
+      setWalkingPawn({
+        playerId: lm.playerId,
+        pawnId: lm.pawnIndex,
+        color: lm.color,
+        step: 0,
+      });
+      ludoAudio.playPawnHop();
+      const timer = setTimeout(() => {
+        setWalkingPawn(null);
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+
+    // Se andou no tabuleiro (passo a passo de fromStep até toStep)
+    let current = lm.fromStep;
+    const target = lm.toStep;
+
+    const interval = setInterval(() => {
+      current++;
+      ludoAudio.playPawnHop();
+      setWalkingPawn({
+        playerId: lm.playerId,
+        pawnId: lm.pawnIndex,
+        color: lm.color,
+        step: current,
+      });
+
+      if (current >= target) {
+        clearInterval(interval);
+        setTimeout(() => {
+          setWalkingPawn(null);
+          if (target === 56) {
+            ludoAudio.playGoal();
+          }
+        }, 180);
+      }
+    }, 140);
+
+    return () => clearInterval(interval);
+  }, [gameState?.lastMove]);
 
   if (!gameState) {
     return (
@@ -186,7 +254,15 @@ export function LudoGameRoom() {
   const pawnsByCoord: Record<string, { pawn: LudoPawn; player: LudoPlayer }[]> = {};
   gameState.players.forEach((p) => {
     p.pawns.forEach((pawn) => {
-      const key = `${pawn.position.row}_${pawn.position.col}`;
+      let pos = pawn.position;
+      if (
+        walkingPawn &&
+        walkingPawn.playerId === p.id &&
+        walkingPawn.pawnId === pawn.id
+      ) {
+        pos = getPawnPosition(p.color, pawn.id, walkingPawn.step);
+      }
+      const key = `${pos.row}_${pos.col}`;
       if (!pawnsByCoord[key]) {
         pawnsByCoord[key] = [];
       }
@@ -270,9 +346,43 @@ export function LudoGameRoom() {
         )}
       </AnimatePresence>
 
+      {/* Banner de Captura / Notificação Flutuante */}
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.9 }}
+            className="my-2 px-5 py-2.5 bg-gradient-to-r from-red-600 to-rose-700 text-white font-bold text-xs md:text-sm rounded-2xl shadow-[0_0_30px_rgba(239,68,68,0.7)] border-2 border-red-300 flex items-center justify-between gap-4 z-40 max-w-lg mx-auto"
+          >
+            <span>{toastMessage}</span>
+            <button
+              onClick={clearToast}
+              className="px-2 py-0.5 rounded-lg bg-black/30 hover:bg-black/50 text-white text-xs cursor-pointer font-mono"
+            >
+              &times;
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Banner de Turno Extra (Rolou 6 ou Capturou) */}
+      <AnimatePresence>
+        {extraTurnBanner && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8, y: -10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8, y: -10 }}
+            className="my-2 px-6 py-2 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 text-slate-950 font-black text-xs md:text-sm tracking-widest uppercase rounded-full shadow-[0_0_35px_rgba(251,191,36,0.8)] border-2 border-white flex items-center justify-center gap-2 animate-bounce z-40 max-w-md mx-auto"
+          >
+            <span>{extraTurnBanner}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* 2. CONTEÚDO PRINCIPAL */}
       <main className="flex-grow flex flex-col items-center justify-center my-4 gap-6">
-        {/* FASE A: LOBBY */}
+        {/* FASE A: LOBBY & SELEÇÃO DE COR */}
         {gameState.state === 'LOBBY' && (
           <motion.div
             initial={{ scale: 0.95, opacity: 0 }}
@@ -288,44 +398,79 @@ export function LudoGameRoom() {
               </p>
             </div>
 
-            {/* Slots dos 4 Jogadores */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {(['RED', 'GREEN', 'YELLOW', 'BLUE'] as LudoColor[]).map((color, idx) => {
+            {/* Slots dos 4 Jogadores / Seleção de Cor Interativa */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              {(['RED', 'GREEN', 'YELLOW', 'BLUE'] as LudoColor[]).map((color) => {
                 const cfg = COLOR_CONFIG[color];
-                const p = gameState.players[idx];
-                const isMe = p && p.id === myId;
+                const assignedPlayer = gameState.players.find((p) => p.color === color);
+                const isMe = assignedPlayer && assignedPlayer.id === myId;
+                const isFree = !assignedPlayer;
 
                 return (
                   <div
                     key={color}
-                    className={`p-3.5 rounded-2xl border flex items-center justify-between transition-all ${
-                      p
-                        ? `${cfg.yardBg} ${cfg.shadow}`
-                        : 'bg-black/30 border-white/5 border-dashed text-gray-600'
+                    onClick={() => {
+                      if (isFree && !isMe) {
+                        chooseColor(color);
+                      }
+                    }}
+                    className={`p-3.5 rounded-2xl border-2 flex items-center justify-between transition-all ${
+                      assignedPlayer
+                        ? isMe
+                          ? `${cfg.yardBg} ${cfg.shadow} border-amber-400 ring-2 ring-amber-400/40 scale-[1.02]`
+                          : `${cfg.yardBg} border-white/20 opacity-90`
+                        : 'bg-black/30 border-white/10 hover:border-amber-400/60 hover:bg-white/5 cursor-pointer border-dashed'
                     }`}
                   >
                     <div className="flex items-center gap-3 truncate">
                       <div
-                        className={`w-7 h-7 rounded-full flex items-center justify-center font-black text-xs text-slate-950 ${cfg.bg}`}
+                        className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-xs text-slate-950 ${cfg.bg} shadow-md`}
                       >
-                        {idx + 1}
+                        ●
                       </div>
                       <div className="flex flex-col truncate">
-                        <span className="text-xs font-bold text-gray-200 truncate">
-                          {p ? p.username : t(cfg.nameKey)}
-                          {isMe && ` ${t('ludo.you_tag')}`}
+                        <span className="text-sm font-bold text-gray-200 truncate flex items-center gap-2">
+                          {assignedPlayer ? assignedPlayer.username : t(cfg.nameKey)}
+                          {isMe && (
+                            <span className="px-1.5 py-0.5 rounded bg-amber-400 text-slate-950 text-[10px] font-black uppercase">
+                              {t('ludo.selected_color')}
+                            </span>
+                          )}
                         </span>
-                        <span className="text-[10px] font-mono text-gray-400">
-                          {p ? (p.isBot ? t('ludo.bot_tag') : 'PLAYER') : 'VAGO (SLOT)'}
+                        <span className="text-[11px] font-mono text-gray-400">
+                          {assignedPlayer
+                            ? assignedPlayer.isBot
+                              ? t('ludo.bot_tag')
+                              : 'PLAYER'
+                            : t('ludo.choose_color')}
                         </span>
                       </div>
                     </div>
 
-                    {p && (
-                      <span className="text-xs">
-                        {p.isBot ? '🤖' : p.id === gameState.leaderId ? '👑' : '✓'}
-                      </span>
-                    )}
+                    <div>
+                      {isMe ? (
+                        <span className="text-sm font-bold text-amber-400">✓</span>
+                      ) : isFree ? (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            chooseColor(color);
+                          }}
+                          className="px-3 py-1 bg-white/10 hover:bg-amber-400 hover:text-slate-950 rounded-lg text-xs font-bold transition font-mono cursor-pointer"
+                        >
+                          {t('ludo.choose_color')}
+                        </button>
+                      ) : (
+                        <span className="text-xs text-gray-500 font-mono">
+                          {assignedPlayer.isBot
+                            ? '🤖'
+                            : assignedPlayer.id === gameState.leaderId
+                            ? '👑'
+                            : '✓'}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 );
               })}
@@ -371,53 +516,109 @@ export function LudoGameRoom() {
         {/* FASE B: TABULEIRO EM JOGO */}
         {gameState.state !== 'LOBBY' && (
           <div className="w-full max-w-6xl flex flex-col lg:flex-row items-center lg:items-start justify-center gap-8">
-            
             {/* TABULEIRO 15x15 */}
-            <div className="relative w-full max-w-[480px] sm:max-w-[540px] md:max-w-[580px] aspect-square bg-slate-950 border-4 border-white/20 rounded-3xl p-2 md:p-3 shadow-[0_0_50px_rgba(0,0,0,0.8)] flex items-center justify-center">
-              
-              {/* Grid de 15x15 Células de Fundo */}
+            <div className="relative w-full max-w-[540px] sm:max-w-[620px] md:max-w-[680px] lg:max-w-[700px] aspect-square bg-slate-900 border-4 border-slate-700/80 rounded-3xl p-2.5 md:p-3.5 shadow-[0_25px_60px_rgba(0,0,0,0.85)] flex items-center justify-center select-none">
+              {/* 1. As 4 Garagens Canto a Canto (Bases Sólidas Estilizadas) */}
+
+              {/* Garagem Vermelha (Top-Left: 6x6) */}
+              <div className="absolute top-2.5 md:top-3.5 left-2.5 md:left-3.5 w-[40%] h-[40%] rounded-2xl bg-gradient-to-br from-red-600 via-red-500 to-rose-700 p-2 md:p-3 shadow-lg pointer-events-none z-0 flex items-center justify-center border-2 border-red-400">
+                <div className="w-full h-full bg-white/95 rounded-xl p-2 shadow-inner grid grid-cols-2 grid-rows-2 gap-2 place-items-center">
+                  <div className="w-7 h-7 md:w-9 md:h-9 rounded-full bg-red-100 border-2 border-red-400 shadow-sm" />
+                  <div className="w-7 h-7 md:w-9 md:h-9 rounded-full bg-red-100 border-2 border-red-400 shadow-sm" />
+                  <div className="w-7 h-7 md:w-9 md:h-9 rounded-full bg-red-100 border-2 border-red-400 shadow-sm" />
+                  <div className="w-7 h-7 md:w-9 md:h-9 rounded-full bg-red-100 border-2 border-red-400 shadow-sm" />
+                </div>
+              </div>
+
+              {/* Garagem Verde (Top-Right: 6x6) */}
+              <div className="absolute top-2.5 md:top-3.5 right-2.5 md:right-3.5 w-[40%] h-[40%] rounded-2xl bg-gradient-to-br from-emerald-600 via-emerald-500 to-teal-700 p-2 md:p-3 shadow-lg pointer-events-none z-0 flex items-center justify-center border-2 border-emerald-400">
+                <div className="w-full h-full bg-white/95 rounded-xl p-2 shadow-inner grid grid-cols-2 grid-rows-2 gap-2 place-items-center">
+                  <div className="w-7 h-7 md:w-9 md:h-9 rounded-full bg-emerald-100 border-2 border-emerald-400 shadow-sm" />
+                  <div className="w-7 h-7 md:w-9 md:h-9 rounded-full bg-emerald-100 border-2 border-emerald-400 shadow-sm" />
+                  <div className="w-7 h-7 md:w-9 md:h-9 rounded-full bg-emerald-100 border-2 border-emerald-400 shadow-sm" />
+                  <div className="w-7 h-7 md:w-9 md:h-9 rounded-full bg-emerald-100 border-2 border-emerald-400 shadow-sm" />
+                </div>
+              </div>
+
+              {/* Garagem Azul (Bottom-Left: 6x6) */}
+              <div className="absolute bottom-2.5 md:bottom-3.5 left-2.5 md:left-3.5 w-[40%] h-[40%] rounded-2xl bg-gradient-to-br from-blue-600 via-blue-500 to-cyan-700 p-2 md:p-3 shadow-lg pointer-events-none z-0 flex items-center justify-center border-2 border-blue-400">
+                <div className="w-full h-full bg-white/95 rounded-xl p-2 shadow-inner grid grid-cols-2 grid-rows-2 gap-2 place-items-center">
+                  <div className="w-7 h-7 md:w-9 md:h-9 rounded-full bg-blue-100 border-2 border-blue-400 shadow-sm" />
+                  <div className="w-7 h-7 md:w-9 md:h-9 rounded-full bg-blue-100 border-2 border-blue-400 shadow-sm" />
+                  <div className="w-7 h-7 md:w-9 md:h-9 rounded-full bg-blue-100 border-2 border-blue-400 shadow-sm" />
+                  <div className="w-7 h-7 md:w-9 md:h-9 rounded-full bg-blue-100 border-2 border-blue-400 shadow-sm" />
+                </div>
+              </div>
+
+              {/* Garagem Amarela (Bottom-Right: 6x6) */}
+              <div className="absolute bottom-2.5 md:bottom-3.5 right-2.5 md:right-3.5 w-[40%] h-[40%] rounded-2xl bg-gradient-to-br from-amber-400 via-yellow-400 to-amber-500 p-2 md:p-3 shadow-lg pointer-events-none z-0 flex items-center justify-center border-2 border-amber-300">
+                <div className="w-full h-full bg-white/95 rounded-xl p-2 shadow-inner grid grid-cols-2 grid-rows-2 gap-2 place-items-center">
+                  <div className="w-7 h-7 md:w-9 md:h-9 rounded-full bg-amber-100 border-2 border-amber-400 shadow-sm" />
+                  <div className="w-7 h-7 md:w-9 md:h-9 rounded-full bg-amber-100 border-2 border-amber-400 shadow-sm" />
+                  <div className="w-7 h-7 md:w-9 md:h-9 rounded-full bg-amber-100 border-2 border-amber-400 shadow-sm" />
+                  <div className="w-7 h-7 md:w-9 md:h-9 rounded-full bg-amber-100 border-2 border-amber-400 shadow-sm" />
+                </div>
+              </div>
+
+              {/* 2. Grid de 15x15 Células de Fundo */}
               <div
                 style={{
                   gridTemplateColumns: 'repeat(15, minmax(0, 1fr))',
                   gridTemplateRows: 'repeat(15, minmax(0, 1fr))',
                 }}
-                className="w-full h-full grid gap-0.5 rounded-2xl overflow-hidden bg-slate-900"
+                className="w-full h-full grid gap-0.5 rounded-2xl overflow-hidden z-10"
               >
                 {Array.from({ length: 15 }).map((_, row) =>
                   Array.from({ length: 15 }).map((_, col) => {
-                    // Determina a cor e estilo de cada casa do tabuleiro
-                    let cellColor = 'bg-slate-950/80 border border-white/5';
-                    let isStar = false;
-                    let isStart = false;
+                    // Células dentro das 4 garagens ficam transparentes pois as bases sólidas renderizam abaixo
+                    const isYardCell =
+                      (row < 6 && col < 6) ||
+                      (row < 6 && col > 8) ||
+                      (row > 8 && col < 6) ||
+                      (row > 8 && col > 8);
 
-                    // 1. Garagens (6x6 nos cantos)
-                    if (row < 6 && col < 6) cellColor = 'bg-red-950/90 border-red-500/30';
-                    else if (row < 6 && col > 8) cellColor = 'bg-emerald-950/90 border-emerald-500/30';
-                    else if (row > 8 && col > 8) cellColor = 'bg-amber-950/90 border-amber-500/30';
-                    else if (row > 8 && col < 6) cellColor = 'bg-blue-950/90 border-blue-500/30';
-
-                    // 2. Retas Finais (Home Stretches)
-                    else if (row === 7 && col >= 1 && col <= 5) cellColor = 'bg-red-500/80 border-red-400';
-                    else if (col === 7 && row >= 1 && row <= 5) cellColor = 'bg-emerald-500/80 border-emerald-400';
-                    else if (row === 7 && col >= 9 && col <= 13) cellColor = 'bg-amber-400/80 border-amber-300';
-                    else if (col === 7 && row >= 9 && row <= 13) cellColor = 'bg-blue-500/80 border-blue-400';
-
-                    // 3. Saídas das Cores
-                    else if (row === 6 && col === 1) {
-                      cellColor = 'bg-red-500 font-black text-slate-950';
-                      isStart = true;
-                    } else if (row === 1 && col === 8) {
-                      cellColor = 'bg-emerald-500 font-black text-slate-950';
-                      isStart = true;
-                    } else if (row === 8 && col === 13) {
-                      cellColor = 'bg-amber-400 font-black text-slate-950';
-                      isStart = true;
-                    } else if (row === 13 && col === 6) {
-                      cellColor = 'bg-blue-500 font-black text-slate-950';
-                      isStart = true;
+                    if (isYardCell) {
+                      return <div key={`${row}_${col}`} className="opacity-0 pointer-events-none" />;
                     }
 
-                    // 4. Casas Seguras com Estrela
+                    // Determina a cor e estilo de cada casa do circuito
+                    let cellColor = 'bg-slate-100 text-slate-900 border border-slate-300/90 shadow-sm';
+                    let isStar = false;
+                    let isStart = false;
+                    let startArrow = '';
+                    let centerIcon = '';
+
+                    // 1. Retas Finais (Home Stretches)
+                    if (row === 7 && col >= 1 && col <= 5) {
+                      cellColor = 'bg-red-500 border border-red-400 text-white shadow-sm';
+                    } else if (col === 7 && row >= 1 && row <= 5) {
+                      cellColor = 'bg-emerald-500 border border-emerald-400 text-white shadow-sm';
+                    } else if (row === 7 && col >= 9 && col <= 13) {
+                      cellColor = 'bg-amber-400 border border-amber-300 text-slate-950 shadow-sm';
+                    } else if (col === 7 && row >= 9 && row <= 13) {
+                      cellColor = 'bg-blue-500 border border-blue-400 text-white shadow-sm';
+                    }
+
+                    // 2. Saídas das Cores
+                    else if (row === 6 && col === 1) {
+                      cellColor = 'bg-red-500 font-black text-white border border-red-600 shadow';
+                      isStart = true;
+                      startArrow = '➔';
+                    } else if (row === 1 && col === 8) {
+                      cellColor = 'bg-emerald-500 font-black text-white border border-emerald-600 shadow';
+                      isStart = true;
+                      startArrow = '⬇';
+                    } else if (row === 8 && col === 13) {
+                      cellColor = 'bg-amber-400 font-black text-slate-950 border border-amber-500 shadow';
+                      isStart = true;
+                      startArrow = '⬅';
+                    } else if (row === 13 && col === 6) {
+                      cellColor = 'bg-blue-500 font-black text-white border border-blue-600 shadow';
+                      isStart = true;
+                      startArrow = '⬆';
+                    }
+
+                    // 3. Casas Seguras com Estrela
                     else if (
                       (row === 2 && col === 6) ||
                       (row === 6 && col === 12) ||
@@ -425,33 +626,47 @@ export function LudoGameRoom() {
                       (row === 8 && col === 2)
                     ) {
                       isStar = true;
-                      cellColor = 'bg-slate-800 border-amber-400/60 shadow-[0_0_10px_rgba(251,191,36,0.3)]';
+                      cellColor = 'bg-amber-100 border-2 border-amber-400 text-amber-600 shadow-[0_0_12px_rgba(251,191,36,0.5)]';
                     }
 
-                    // 5. Centro (Triângulos da Meta)
+                    // 4. Centro (Meta 3x3)
                     else if (row >= 6 && row <= 8 && col >= 6 && col <= 8) {
-                      if (row === 7 && col === 6) cellColor = 'bg-red-500/90';
-                      else if (row === 6 && col === 7) cellColor = 'bg-emerald-500/90';
-                      else if (row === 7 && col === 8) cellColor = 'bg-amber-400/90';
-                      else if (row === 8 && col === 7) cellColor = 'bg-blue-500/90';
-                      else cellColor = 'bg-slate-900';
+                      if (row === 7 && col === 6) {
+                        cellColor = 'bg-red-500/90 text-white font-black border border-red-400';
+                        centerIcon = '➔';
+                      } else if (row === 6 && col === 7) {
+                        cellColor = 'bg-emerald-500/90 text-white font-black border border-emerald-400';
+                        centerIcon = '⬇';
+                      } else if (row === 7 && col === 8) {
+                        cellColor = 'bg-amber-400/90 text-slate-950 font-black border border-amber-300';
+                        centerIcon = '⬅';
+                      } else if (row === 8 && col === 7) {
+                        cellColor = 'bg-blue-500/90 text-white font-black border border-blue-400';
+                        centerIcon = '⬆';
+                      } else if (row === 7 && col === 7) {
+                        cellColor = 'bg-slate-900 border-2 border-amber-400 text-amber-400 shadow-[0_0_18px_rgba(251,191,36,0.8)]';
+                        centerIcon = '🏆';
+                      } else {
+                        cellColor = 'bg-slate-800 border border-slate-700/60';
+                      }
                     }
 
                     return (
                       <div
                         key={`${row}_${col}`}
-                        className={`relative flex items-center justify-center text-[10px] ${cellColor}`}
+                        className={`relative flex items-center justify-center text-[10px] font-bold ${cellColor}`}
                       >
-                        {isStar && <span className="text-amber-300 text-xs animate-pulse">⭐</span>}
-                        {isStart && <span className="text-[9px] font-black font-mono">➔</span>}
+                        {isStar && <span className="text-amber-500 text-xs md:text-sm drop-shadow">⭐</span>}
+                        {isStart && <span className="text-[10px] md:text-xs font-black">{startArrow}</span>}
+                        {centerIcon && <span className="text-xs md:text-sm font-black">{centerIcon}</span>}
                       </div>
                     );
                   })
                 )}
               </div>
 
-              {/* RENDERIZAÇÃO DOS PEÕES EM CAMADA SOBREPOSTA */}
-              <div className="absolute inset-2 md:inset-3 pointer-events-none">
+              {/* 3. RENDERIZAÇÃO DOS PEÕES EM CAMADA SOBREPOSTA */}
+              <div className="absolute inset-2.5 md:inset-3.5 pointer-events-none z-20">
                 {Object.entries(pawnsByCoord).map(([coordKey, pawnList]) => {
                   const [rowStr, colStr] = coordKey.split('_');
                   const row = parseInt(rowStr, 10);
@@ -470,15 +685,19 @@ export function LudoGameRoom() {
                         width: '6.666%',
                         height: '6.666%',
                       }}
-                      className="absolute flex items-center justify-center pointer-events-auto"
+                      className="absolute flex items-center justify-center pointer-events-auto transition-all duration-100 ease-out"
                     >
-                      {pawnList.map(({ pawn }, idx) => {
+                      {pawnList.map(({ pawn, player: pawnOwner }, idx) => {
                         const canMoveThisPawn =
                           isMyTurn &&
                           gameState.state === 'WAITING_MOVE' &&
                           gameState.validMoves.includes(pawn.id);
 
                         const cfg = COLOR_CONFIG[pawn.color];
+                        const isWalking =
+                          walkingPawn &&
+                          walkingPawn.playerId === pawnOwner.id &&
+                          walkingPawn.pawnId === pawn.id;
 
                         return (
                           <motion.button
@@ -490,29 +709,31 @@ export function LudoGameRoom() {
                                 movePawn(pawn.id);
                               }
                             }}
-                            whileHover={canMoveThisPawn ? { scale: 1.35, zIndex: 30 } : {}}
+                            whileHover={canMoveThisPawn ? { scale: 1.4, zIndex: 30 } : {}}
                             animate={
-                              canMoveThisPawn
+                              isWalking
+                                ? { scale: [1, 1.35, 1], y: [0, -6, 0] }
+                                : canMoveThisPawn
                                 ? {
                                     scale: [1, 1.25, 1],
-                                    y: [0, -3, 0],
+                                    y: [0, -4, 0],
                                   }
                                 : { scale: 1, y: 0 }
                             }
                             transition={{
-                              duration: 0.5,
-                              repeat: canMoveThisPawn ? Infinity : 0,
+                              duration: isWalking ? 0.14 : 0.5,
+                              repeat: canMoveThisPawn && !isWalking ? Infinity : 0,
                               repeatDelay: 0.2,
                             }}
                             className={`relative rounded-full flex items-center justify-center border-2 transition-all ${
-                              count > 1 ? 'w-4 h-4 md:w-5 md:h-5' : 'w-5 h-5 md:w-6 md:h-6'
+                              count > 1 ? 'w-4 h-4 md:w-5 md:h-5' : 'w-5 h-5 md:w-7 md:h-7'
                             } ${cfg.bg} ${cfg.border} ${
                               canMoveThisPawn
-                                ? 'shadow-[0_0_20px_rgba(255,255,255,0.9)] border-white cursor-pointer z-20 animate-pulse'
+                                ? 'shadow-[0_0_20px_rgba(255,255,255,0.9)] border-white cursor-pointer z-30 animate-pulse'
                                 : 'shadow-md cursor-default'
                             }`}
                           >
-                            <span className="text-[9px] font-black text-slate-950 font-mono">
+                            <span className="text-[9px] md:text-[10px] font-black text-slate-950 font-mono">
                               {pawn.id + 1}
                             </span>
 
@@ -533,7 +754,6 @@ export function LudoGameRoom() {
 
             {/* PAINEL LATERAL: CONTROLES, DADO & STATUS */}
             <div className="flex flex-col gap-5 max-w-sm w-full">
-              
               {/* Placar de Peões na Meta */}
               <div className="bg-black/60 border border-white/10 rounded-2xl p-4 shadow-xl">
                 <span className="text-xs font-bold uppercase tracking-widest text-gray-400 block mb-3 border-b border-white/10 pb-2">
@@ -583,7 +803,9 @@ export function LudoGameRoom() {
                     </span>
                   )}
                   <span className="text-xs font-mono font-bold text-gray-300">
-                    {isMyTurn ? t('ludo.your_turn') : t('ludo.player_turn', { name: activePlayer?.username })}
+                    {isMyTurn
+                      ? t('ludo.your_turn')
+                      : t('ludo.player_turn', { name: activePlayer?.username })}
                   </span>
                 </div>
 

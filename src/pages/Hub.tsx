@@ -101,7 +101,7 @@ export function Hub() {
         </div>
       </header>
 
-      <main className="relative z-10 max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-6">
+      <main className="relative z-10 max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
         
         {/* Card do Jogo 1: ITTO */}
         <motion.div 
@@ -112,11 +112,11 @@ export function Hub() {
           <div className="absolute inset-0 opacity-10 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPjxyZWN0IHdpZHRoPSI0IiBoZWlnaHQ9IjQiIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSIvPjwvc3ZnPg==')] pointer-events-none mix-blend-overlay" />
           
           <div className="relative z-10">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-4xl font-black text-purple-300 tracking-wider">
+            <div className="flex items-start justify-between gap-3 mb-4">
+              <h2 className="text-3xl md:text-4xl font-black text-purple-300 tracking-wider">
                 {t('hub.itto_title')}
               </h2>
-              <span className="px-3 py-1 bg-purple-500/20 text-purple-300 border border-purple-500/30 rounded-full text-xs font-mono font-bold">
+              <span className="px-3 py-1 bg-purple-500/20 text-purple-300 border border-purple-500/30 rounded-full text-xs font-mono font-bold whitespace-nowrap flex-shrink-0">
                 {t('hub.itto_tag')}
               </span>
             </div>
@@ -174,11 +174,11 @@ export function Hub() {
           <div className="absolute inset-0 opacity-10 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPjxyZWN0IHdpZHRoPSI0IiBoZWlnaHQ9IjQiIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSIvPjwvc3ZnPg==')] pointer-events-none mix-blend-overlay" />
           
           <div className="relative z-10">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-amber-300 to-blue-400 tracking-wider">
+            <div className="flex items-start justify-between gap-3 mb-4">
+              <h2 className="text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-amber-300 to-blue-400 tracking-wider">
                 {t('hub.hanabi_title')}
               </h2>
-              <span className="px-3 py-1 bg-red-500/20 text-red-300 border border-red-500/30 rounded-full text-xs font-mono font-bold">
+              <span className="px-3 py-1 bg-red-500/20 text-red-300 border border-red-500/30 rounded-full text-xs font-mono font-bold whitespace-nowrap flex-shrink-0">
                 {t('hub.hanabi_tag')}
               </span>
             </div>
@@ -236,11 +236,11 @@ export function Hub() {
           <div className="absolute inset-0 opacity-10 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPjxyZWN0IHdpZHRoPSI0IiBoZWlnaHQ9IjQiIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSIvPjwvc3ZnPg==')] pointer-events-none mix-blend-overlay" />
           
           <div className="relative z-10">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-3xl font-black text-white tracking-wider">
+            <div className="flex items-start justify-between gap-3 mb-4">
+              <h2 className="text-3xl md:text-4xl font-black text-white tracking-wider">
                 {t('hub.cah_title')}
               </h2>
-              <span className="px-3 py-1 bg-white/10 text-white border border-white/20 rounded-full text-xs font-mono font-bold">
+              <span className="px-3 py-1 bg-white/10 text-white border border-white/20 rounded-full text-xs font-mono font-bold whitespace-nowrap flex-shrink-0">
                 {t('hub.cah_tag')}
               </span>
             </div>
@@ -298,11 +298,11 @@ export function Hub() {
           <div className="absolute inset-0 opacity-10 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPjxyZWN0IHdpZHRoPSI0IiBoZWlnaHQ9IjQiIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSIvPjwvc3ZnPg==')] pointer-events-none mix-blend-overlay" />
           
           <div className="relative z-10">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-3xl font-black text-amber-300 tracking-wider">
+            <div className="flex items-start justify-between gap-3 mb-4">
+              <h2 className="text-3xl md:text-4xl font-black text-amber-300 tracking-wider">
                 {t('hub.ludo_title')}
               </h2>
-              <span className="px-3 py-1 bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-full text-xs font-mono font-bold">
+              <span className="px-3 py-1 bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-full text-xs font-mono font-bold whitespace-nowrap flex-shrink-0">
                 {t('hub.ludo_tag')}
               </span>
             </div>

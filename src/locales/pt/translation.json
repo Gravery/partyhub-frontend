@@ -345,6 +345,11 @@
     "play_again": "Jogar Novamente",
     "action_log": "Histórico da Mesa",
     "bot_tag": "BOT",
-    "you_tag": "(Você)"
+    "you_tag": "(Você)",
+    "choose_color": "Escolher Cor",
+    "selected_color": "Sua Cor",
+    "color_taken": "Ocupada",
+    "extra_turn_banner": "🎲 {{name}} tirou 6 e joga novamente!",
+    "capture_banner": "⚔️ {{captor}} capturou o peão de {{captured}} e joga novamente!"
   }
 }

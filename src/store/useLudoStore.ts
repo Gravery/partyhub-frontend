@@ -28,6 +28,20 @@ export interface LudoPlayer {
   finishRank: number;
 }
 
+export interface LastMoveInfo {
+  playerId: string;
+  playerName: string;
+  color: LudoColor;
+  pawnIndex: number;
+  fromStep: number;
+  toStep: number;
+  dice: number;
+  captured: boolean;
+  capturedBy?: string;
+  capturedPawn?: string;
+  isExtraTurn: boolean;
+}
+
 export interface LudoGameState {
   state: 'LOBBY' | 'WAITING_ROLL' | 'WAITING_MOVE' | 'GAME_OVER';
   players: LudoPlayer[];
@@ -42,6 +56,7 @@ export interface LudoGameState {
   rankings: LudoPlayer[];
   actionLog: string[];
   language: string;
+  lastMove?: LastMoveInfo | null;
 }
 
 // Síntese de áudio Web Audio API para efeitos sonoros táteis e imersivos
@@ -78,6 +93,24 @@ class SoundFX {
       osc.start(this.ctx.currentTime + i * 0.06);
       osc.stop(this.ctx.currentTime + i * 0.06 + 0.09);
     }
+  }
+
+  playPawnHop() {
+    if (!this.enabled) return;
+    this.initCtx();
+    if (!this.ctx) return;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(360, this.ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(560, this.ctx.currentTime + 0.08);
+    gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.08);
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start();
+    osc.stop(this.ctx.currentTime + 0.09);
   }
 
   playPawnStep() {
@@ -149,11 +182,14 @@ interface LudoStore {
   errorMsg: string | null;
   isRollingAnimation: boolean;
   soundEnabled: boolean;
+  toastMessage: string | null;
+  extraTurnBanner: string | null;
 
   connect: (roomId: string, token: string) => void;
   disconnect: () => void;
   manualReconnect: () => void;
   sendMessage: (type: string, payload?: any) => void;
+  chooseColor: (color: LudoColor) => void;
   toggleBots: () => void;
   startGame: () => void;
   rollDice: () => void;
@@ -161,6 +197,8 @@ interface LudoStore {
   restartGame: () => void;
   toggleSound: () => void;
   clearError: () => void;
+  clearToast: () => void;
+  clearExtraTurnBanner: () => void;
 }
 
 let activeRoomId = '';
@@ -176,6 +214,8 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
   errorMsg: null,
   isRollingAnimation: false,
   soundEnabled: true,
+  toastMessage: null,
+  extraTurnBanner: null,
 
   connect: (roomId: string, token: string) => {
     activeRoomId = roomId;
@@ -243,28 +283,32 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
             setTimeout(() => set({ isRollingAnimation: false }), 450);
           }
 
-          if (prevState && nextState.state === 'WAITING_ROLL') {
-            // Verifica se algum peão se moveu
-            let moved = false;
-            let scored = false;
-            for (let i = 0; i < nextState.players.length; i++) {
-              const prevP = prevState.players[i];
-              const nextP = nextState.players[i];
-              if (prevP && nextP) {
-                if (nextP.score > prevP.score) {
-                  scored = true;
+          if (nextState.lastMove) {
+            const lm = nextState.lastMove;
+            if (lm.captured && lm.capturedBy && lm.capturedPawn) {
+              const captor = lm.capturedBy;
+              set({
+                toastMessage: `⚔️ ${captor} capturou o peão de ${lm.capturedPawn}!`,
+              });
+              ludoAudio.playCapture();
+              setTimeout(() => {
+                if (get().toastMessage?.includes(captor)) {
+                  set({ toastMessage: null });
                 }
-                for (let j = 0; j < 4; j++) {
-                  if (prevP.pawns[j].step !== nextP.pawns[j].step) {
-                    moved = true;
-                  }
-                }
-              }
+              }, 3500);
             }
-            if (scored) {
-              ludoAudio.playGoal();
-            } else if (moved) {
-              ludoAudio.playPawnStep();
+
+            if (lm.isExtraTurn && lm.playerName) {
+              const banner =
+                lm.dice === 6
+                  ? `🎲 ${lm.playerName} rolou 6! Jogue novamente!`
+                  : `⚔️ ${lm.playerName} capturou um peão! Jogue novamente!`;
+              set({ extraTurnBanner: banner });
+              setTimeout(() => {
+                if (get().extraTurnBanner === banner) {
+                  set({ extraTurnBanner: null });
+                }
+              }, 2500);
             }
           }
 
@@ -326,6 +370,8 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
       isReconnecting: false,
       gameState: null,
       errorMsg: null,
+      toastMessage: null,
+      extraTurnBanner: null,
       reconnectAttempt: 0,
     });
   },
@@ -342,6 +388,10 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({ type, payload }));
     }
+  },
+
+  chooseColor: (color: LudoColor) => {
+    get().sendMessage('CHOOSE_COLOR', { color });
   },
 
   toggleBots: () => {
@@ -372,5 +422,13 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
 
   clearError: () => {
     set({ errorMsg: null });
+  },
+
+  clearToast: () => {
+    set({ toastMessage: null });
+  },
+
+  clearExtraTurnBanner: () => {
+    set({ extraTurnBanner: null });
   },
 }));

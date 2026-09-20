@@ -345,6 +345,11 @@
     "play_again": "Play Again",
     "action_log": "Match Activity Log",
     "bot_tag": "BOT",
-    "you_tag": "(You)"
+    "you_tag": "(You)",
+    "choose_color": "Choose Color",
+    "selected_color": "Your Color",
+    "color_taken": "Taken",
+    "extra_turn_banner": "🎲 {{name}} rolled a 6 and plays again!",
+    "capture_banner": "⚔️ {{captor}} captured {{captured}}'s pawn and plays again!"
   }
 }
