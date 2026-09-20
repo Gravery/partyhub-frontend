@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '../store/useAuthStore';
 import { api, type FullStatsResponse } from '../lib/api';
+import { LanguageSelector } from '../components/LanguageSelector';
 
 export function Profile() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { session, user, username, setUsername, signOut } = useAuthStore();
 
@@ -54,9 +57,9 @@ export function Profile() {
     try {
       await api.updateProfile(session.access_token, newUsername.trim());
       setUsername(newUsername.trim());
-      setMsg({ text: 'Nome de usuário atualizado com sucesso!', type: 'success' });
+      setMsg({ text: t('profile.username_updated'), type: 'success' });
     } catch (error: any) {
-      setMsg({ text: error.message || 'Falha ao salvar apelido', type: 'error' });
+      setMsg({ text: error.message || 'Error', type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -70,7 +73,7 @@ export function Profile() {
   const gameInfoMap: Record<string, { name: string; icon: string; color: string }> = {
     itto: { name: 'ITTO', icon: '🧠', color: 'from-purple-500 to-indigo-600' },
     hanabi: { name: 'Hanabi', icon: '🎆', color: 'from-amber-500 to-rose-600' },
-    cah: { name: 'Cartas Contra a Humanidade', icon: '🃏', color: 'from-zinc-700 to-zinc-900' },
+    cah: { name: t('hub.cah_title'), icon: '🃏', color: 'from-zinc-700 to-zinc-900' },
   };
 
   return (
@@ -82,20 +85,24 @@ export function Profile() {
 
       <div className="relative z-10 max-w-6xl mx-auto">
         {/* Top bar */}
-        <div className="flex justify-between items-center mb-8 border-b border-white/10 pb-4">
+        <div className="flex justify-between items-center mb-8 border-b border-white/10 pb-4 gap-4 flex-wrap">
           <button
             onClick={() => navigate('/hub')}
-            className="text-purple-400 hover:text-purple-300 font-mono text-sm tracking-wider uppercase flex items-center gap-2 transition-all hover:-translate-x-1"
+            className="text-purple-400 hover:text-purple-300 font-mono text-sm tracking-wider uppercase flex items-center gap-2 transition-all hover:-translate-x-1 cursor-pointer"
           >
-            <span>&larr;</span> Voltar ao Hub
+            <span>&larr;</span> {t('profile.back_to_hub')}
           </button>
 
-          <button
-            onClick={handleLogout}
-            className="px-4 py-2 bg-red-950/40 text-red-400 font-mono text-xs uppercase tracking-wider rounded-lg border border-red-900/50 hover:bg-red-900/50 hover:text-red-200 transition-colors"
-          >
-            Sair da Conta (Logout)
-          </button>
+          <div className="flex items-center gap-4">
+            <LanguageSelector />
+
+            <button
+              onClick={handleLogout}
+              className="px-4 py-2 bg-red-950/40 text-red-400 font-mono text-xs uppercase tracking-wider rounded-lg border border-red-900/50 hover:bg-red-900/50 hover:text-red-200 transition-colors cursor-pointer"
+            >
+              {t('common.logout')}
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -134,7 +141,7 @@ export function Profile() {
               <form onSubmit={handleUpdate} className="space-y-4">
                 <div className="group">
                   <label className="block text-purple-200/80 text-[11px] font-bold mb-1.5 uppercase tracking-wider font-mono">
-                    Nome de Jogador / Apelido
+                    {t('profile.change_username')}
                   </label>
                   <div className="relative">
                     <input
@@ -152,16 +159,16 @@ export function Profile() {
                   disabled={loading || newUsername.trim() === username}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className="w-full py-3 bg-fuchsia-600 hover:bg-fuchsia-500 text-white font-black tracking-wider uppercase rounded-xl disabled:opacity-50 border border-fuchsia-400/50 hover:shadow-[0_0_20px_rgba(192,38,211,0.4)] transition-all text-xs"
+                  className="w-full py-3 bg-fuchsia-600 hover:bg-fuchsia-500 text-white font-black tracking-wider uppercase rounded-xl disabled:opacity-50 border border-fuchsia-400/50 hover:shadow-[0_0_20px_rgba(192,38,211,0.4)] transition-all text-xs cursor-pointer"
                 >
-                  {loading ? 'Salvando...' : 'Salvar Apelido'}
+                  {loading ? t('profile.saving') : t('profile.save_username')}
                 </motion.button>
               </form>
             </div>
 
             <div className="mt-8 pt-4 border-t border-white/10 text-center">
               <span className="text-[11px] font-mono text-gray-500 uppercase tracking-wider">
-                PartyHub Operator ID: <span className="text-gray-400">{user?.id?.substring(0, 8)}...</span>
+                {t('profile.operator_id')}: <span className="text-gray-400">{user?.id?.substring(0, 8)}...</span>
               </span>
             </div>
           </motion.div>
@@ -177,7 +184,7 @@ export function Profile() {
             >
               <div className="bg-black/40 border border-white/10 rounded-2xl p-4 text-center">
                 <span className="block text-[11px] font-mono text-purple-300 uppercase tracking-wider mb-1">
-                  Partidas
+                  {t('profile.summary_matches')}
                 </span>
                 <span className="text-3xl font-black text-white">
                   {statsLoading ? '...' : stats?.total_matches || 0}
@@ -186,7 +193,7 @@ export function Profile() {
 
               <div className="bg-black/40 border border-white/10 rounded-2xl p-4 text-center">
                 <span className="block text-[11px] font-mono text-emerald-400 uppercase tracking-wider mb-1">
-                  Vitórias
+                  {t('profile.summary_wins')}
                 </span>
                 <span className="text-3xl font-black text-emerald-400">
                   {statsLoading ? '...' : stats?.total_wins || 0}
@@ -195,7 +202,7 @@ export function Profile() {
 
               <div className="bg-black/40 border border-white/10 rounded-2xl p-4 text-center">
                 <span className="block text-[11px] font-mono text-amber-400 uppercase tracking-wider mb-1">
-                  Taxa de Vitória
+                  {t('profile.summary_win_rate')}
                 </span>
                 <span className="text-3xl font-black text-amber-400">
                   {statsLoading ? '...' : `${(stats?.win_rate || 0).toFixed(0)}%`}
@@ -204,7 +211,7 @@ export function Profile() {
 
               <div className="bg-black/40 border border-white/10 rounded-2xl p-4 text-center">
                 <span className="block text-[11px] font-mono text-cyan-400 uppercase tracking-wider mb-1">
-                  Pontos Totais
+                  {t('profile.summary_total_score')}
                 </span>
                 <span className="text-3xl font-black text-cyan-400">
                   {statsLoading ? '...' : stats?.total_score || 0}
@@ -220,7 +227,7 @@ export function Profile() {
               className="bg-black/40 border border-white/10 rounded-3xl p-6 shadow-xl"
             >
               <h2 className="text-base font-black text-white uppercase tracking-wider mb-4 flex items-center gap-2">
-                <span>🏆</span> Desempenho por Jogo
+                <span>🏆</span> {t('profile.game_performance')}
               </h2>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -242,7 +249,9 @@ export function Profile() {
                         <div>
                           <h3 className="font-bold text-sm text-white">{info.name}</h3>
                           <span className="text-[10px] font-mono text-gray-400">
-                            {stat ? `${stat.matches_played} partidas` : 'Nenhuma partida'}
+                            {stat
+                              ? t('profile.matches_count', { count: stat.matches_played })
+                              : t('profile.no_matches_count')}
                           </span>
                         </div>
                       </div>
@@ -251,30 +260,30 @@ export function Profile() {
                         {slug === 'itto' ? (
                           <>
                             <div className="flex justify-between text-gray-300">
-                              <span>Modo:</span>
-                              <span className="text-purple-400 font-bold">Cooperativo</span>
+                              <span>{t('profile.mode_cooperative')}:</span>
+                              <span className="text-purple-400 font-bold">✓</span>
                             </div>
                             <div className="flex justify-between text-gray-300">
-                              <span>Maior Nível:</span>
-                              <span className="text-amber-400 font-bold">Nível {stat?.high_score || 0}</span>
+                              <span>{t('profile.highest_level')}:</span>
+                              <span className="text-amber-400 font-bold">{t('common.level')} {stat?.high_score || 0}</span>
                             </div>
                             <div className="flex justify-between text-gray-300">
-                              <span>Níveis Totais:</span>
+                              <span>{t('profile.total_levels')}:</span>
                               <span className="text-purple-300 font-bold">{stat?.total_score || 0}</span>
                             </div>
                           </>
                         ) : (
                           <>
                             <div className="flex justify-between text-gray-300">
-                              <span>Vitórias:</span>
+                              <span>{t('profile.summary_wins')}:</span>
                               <span className="text-emerald-400 font-bold">{stat?.matches_won || 0}</span>
                             </div>
                             <div className="flex justify-between text-gray-300">
-                              <span>Recorde:</span>
-                              <span className="text-amber-400 font-bold">{stat?.high_score || 0} pts</span>
+                              <span>{t('profile.high_score')}:</span>
+                              <span className="text-amber-400 font-bold">{stat?.high_score || 0} {t('common.pts')}</span>
                             </div>
                             <div className="flex justify-between text-gray-300">
-                              <span>Total Pts:</span>
+                              <span>{t('profile.summary_total_score')}:</span>
                               <span className="text-purple-300 font-bold">{stat?.total_score || 0}</span>
                             </div>
                           </>
@@ -294,14 +303,14 @@ export function Profile() {
               className="bg-black/40 border border-white/10 rounded-3xl p-6 shadow-xl"
             >
               <h2 className="text-base font-black text-white uppercase tracking-wider mb-4 flex items-center gap-2">
-                <span>📜</span> Histórico Recente de Partidas
+                <span>📜</span> {t('profile.recent_matches')}
               </h2>
 
               {statsLoading ? (
-                <p className="text-gray-500 font-mono text-xs text-center py-6">Carregando histórico...</p>
+                <p className="text-gray-500 font-mono text-xs text-center py-6">{t('common.loading')}</p>
               ) : !stats?.recent_matches || stats.recent_matches.length === 0 ? (
                 <div className="text-center py-8 text-gray-500 font-mono text-xs">
-                  Nenhuma partida registrada ainda. Inicie um jogo no Hub para começar seu legado pirotécnico e deductivo!
+                  {t('profile.no_matches')}
                 </div>
               ) : (
                 <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
@@ -310,7 +319,7 @@ export function Profile() {
                       name: match.game_slug.toUpperCase(),
                       icon: '🎮',
                     };
-                    const formattedDate = new Date(match.created_at).toLocaleDateString('pt-BR', {
+                    const formattedDate = new Date(match.created_at).toLocaleDateString(undefined, {
                       day: '2-digit',
                       month: '2-digit',
                       hour: '2-digit',
@@ -332,11 +341,11 @@ export function Profile() {
 
                         <div className="flex items-center gap-4">
                           <span className="text-gray-400 text-right hidden sm:inline text-[11px]">
-                            {match.summary || `Pontuação: ${match.score}`}
+                            {match.summary || `${t('common.points')}: ${match.score}`}
                           </span>
                           {match.game_slug === 'itto' ? (
                             <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-purple-500/20 text-purple-300 border border-purple-500/40">
-                              Nível {match.score}
+                              {t('common.level')} {match.score}
                             </span>
                           ) : (
                             <span
@@ -346,7 +355,7 @@ export function Profile() {
                                   : 'bg-rose-500/20 text-rose-400 border border-rose-500/40'
                               }`}
                             >
-                              {match.won ? 'Vitória' : 'Derrota'}
+                              {match.won ? t('profile.victory') : t('profile.defeat')}
                             </span>
                           )}
                         </div>

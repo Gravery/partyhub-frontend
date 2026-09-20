@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../store/useAuthStore';
 import { motion } from 'framer-motion';
+import { LanguageSelector } from '../components/LanguageSelector';
 
 export function Hub() {
+  const { t } = useTranslation();
   const { user } = useAuthStore();
   const navigate = useNavigate();
   const [ittoCode, setIttoCode] = useState('');
@@ -55,7 +58,7 @@ export function Hub() {
 
       <header className="relative z-10 flex flex-col md:flex-row justify-between items-center mb-16 border-b-2 border-purple-900/50 pb-6 gap-6">
         <motion.h1 
-          className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-fuchsia-600 tracking-widest neon-text-shadow hover:animate-[glitch_0.3s_infinite]"
+          className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-fuchsia-600 tracking-widest neon-text-shadow hover:animate-[glitch_0.3s_infinite]"
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ type: "spring", stiffness: 300, damping: 20 }}
@@ -63,20 +66,26 @@ export function Hub() {
           PARTY HUB
         </motion.h1>
         
-        {/* Retro Readout for User Profile */}
-        <motion.div 
-          onClick={() => navigate('/profile')}
-          className="flex items-center gap-6 bg-black p-4 border border-green-500/30 rounded-md font-mono shadow-[0_0_15px_rgba(34,197,94,0.1)] cursor-pointer hover:bg-green-950/20 hover:border-green-400 transition-all"
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0.1 }}
-        >
-          <div className="flex flex-col">
-            <span className="text-green-500/70 text-xs uppercase tracking-widest">Conectado como</span>
-            <span className="text-green-400 font-bold">{useAuthStore.getState().username || user?.email}</span>
-          </div>
-          <span className="text-green-500 text-xs uppercase font-black tracking-widest">&rarr;</span>
-        </motion.div>
+        {/* Actions bar: Language Selector + Retro Readout for User Profile */}
+        <div className="flex items-center gap-4 flex-wrap justify-center">
+          <LanguageSelector />
+
+          <motion.div 
+            onClick={() => navigate('/profile')}
+            className="flex items-center gap-6 bg-black p-4 border border-green-500/30 rounded-xl font-mono shadow-[0_0_15px_rgba(34,197,94,0.1)] cursor-pointer hover:bg-green-950/20 hover:border-green-400 transition-all"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0.1 }}
+          >
+            <div className="flex flex-col">
+              <span className="text-green-500/70 text-xs uppercase tracking-widest">
+                {t('hub.profile_btn')}
+              </span>
+              <span className="text-green-400 font-bold">{useAuthStore.getState().username || user?.email}</span>
+            </div>
+            <span className="text-green-500 text-xs uppercase font-black tracking-widest">&rarr;</span>
+          </motion.div>
+        </div>
       </header>
 
       <main className="relative z-10 max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -91,11 +100,15 @@ export function Hub() {
           
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-4xl font-black text-purple-300 tracking-wider">ITTO</h2>
-              <span className="px-3 py-1 bg-purple-500/20 text-purple-300 border border-purple-500/30 rounded-full text-xs font-mono font-bold">2-8 JOGADORES</span>
+              <h2 className="text-4xl font-black text-purple-300 tracking-wider">
+                {t('hub.itto_title')}
+              </h2>
+              <span className="px-3 py-1 bg-purple-500/20 text-purple-300 border border-purple-500/30 rounded-full text-xs font-mono font-bold">
+                {t('hub.itto_tag')}
+              </span>
             </div>
             <p className="text-gray-300 text-sm mb-8 leading-relaxed">
-              Um jogo cooperativo de dedução e empatia. Ordenem as cartas do grupo descrevendo a intensidade de temas inusitados sem nunca dizer o seu número secreto de 1 a 100!
+              {t('hub.itto_desc')}
             </p>
           </div>
           
@@ -104,22 +117,24 @@ export function Hub() {
               onClick={createIttoRoom} 
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.96 }}
-              className="w-full py-4 bg-purple-600 hover:bg-purple-500 text-white font-black tracking-widest uppercase rounded-xl overflow-hidden group shadow-[0_0_20px_rgba(147,51,234,0.4)] border border-purple-400/50 relative transition-all"
+              className="w-full py-4 bg-purple-600 hover:bg-purple-500 text-white font-black tracking-widest uppercase rounded-xl overflow-hidden group shadow-[0_0_20px_rgba(147,51,234,0.4)] border border-purple-400/50 relative transition-all cursor-pointer text-sm"
             >
-              <span className="relative z-10">CRIAR SALA DE ITTO</span>
+              <span className="relative z-10">{t('hub.itto_create')}</span>
               <div className="absolute inset-0 h-full w-0 bg-white/20 transition-all duration-500 ease-out group-hover:w-full" />
             </motion.button>
             
             <div className="relative flex items-center py-1">
               <div className="flex-grow border-t border-purple-900/50" />
-              <span className="flex-shrink-0 mx-3 text-purple-400/60 font-bold font-mono text-[11px] uppercase tracking-widest">OU ENTRE COM CÓDIGO</span>
+              <span className="flex-shrink-0 mx-3 text-purple-400/60 font-bold font-mono text-[11px] uppercase tracking-widest">
+                {t('hub.or_enter_code')}
+              </span>
               <div className="flex-grow border-t border-purple-900/50" />
             </div>
 
             <form onSubmit={joinIttoRoom} className="flex gap-2 relative group">
               <input 
                 type="text" 
-                placeholder="CÓDIGO" 
+                placeholder={t('hub.enter_code_placeholder')} 
                 maxLength={4}
                 value={ittoCode}
                 onChange={(e) => setIttoCode(e.target.value)}
@@ -129,9 +144,9 @@ export function Hub() {
                 type="submit" 
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="px-6 bg-gray-800 hover:bg-purple-600 border-2 border-gray-700 hover:border-purple-400 rounded-xl font-black tracking-wider transition-all shadow-md text-sm"
+                className="px-6 bg-gray-800 hover:bg-purple-600 border-2 border-gray-700 hover:border-purple-400 rounded-xl font-black tracking-wider transition-all shadow-md text-sm cursor-pointer"
               >
-                ENTRAR
+                {t('hub.join_btn')}
               </motion.button>
             </form>
           </div>
@@ -148,12 +163,14 @@ export function Hub() {
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-amber-300 to-blue-400 tracking-wider">
-                HANABI
+                {t('hub.hanabi_title')}
               </h2>
-              <span className="px-3 py-1 bg-red-500/20 text-red-300 border border-red-500/30 rounded-full text-xs font-mono font-bold">2-5 JOGADORES</span>
+              <span className="px-3 py-1 bg-red-500/20 text-red-300 border border-red-500/30 rounded-full text-xs font-mono font-bold">
+                {t('hub.hanabi_tag')}
+              </span>
             </div>
             <p className="text-gray-300 text-sm mb-8 leading-relaxed">
-              O clássico espetáculo pirotécnico! Você não vê suas próprias cartas, apenas as dos seus companheiros. Dêem dicas precisas e montem os 5 fogos de artifício antes que o fusível detone!
+              {t('hub.hanabi_desc')}
             </p>
           </div>
           
@@ -162,22 +179,24 @@ export function Hub() {
               onClick={createHanabiRoom} 
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.96 }}
-              className="w-full py-4 bg-gradient-to-r from-red-600 via-purple-600 to-blue-600 hover:opacity-90 text-white font-black tracking-widest uppercase rounded-xl overflow-hidden group shadow-[0_0_20px_rgba(239,68,68,0.3)] border border-red-400/50 relative transition-all"
+              className="w-full py-4 bg-gradient-to-r from-red-600 via-purple-600 to-blue-600 hover:opacity-90 text-white font-black tracking-widest uppercase rounded-xl overflow-hidden group shadow-[0_0_20px_rgba(239,68,68,0.3)] border border-red-400/50 relative transition-all cursor-pointer text-sm"
             >
-              <span className="relative z-10">CRIAR SALA DE HANABI</span>
+              <span className="relative z-10">{t('hub.hanabi_create')}</span>
               <div className="absolute inset-0 h-full w-0 bg-white/20 transition-all duration-500 ease-out group-hover:w-full" />
             </motion.button>
             
             <div className="relative flex items-center py-1">
               <div className="flex-grow border-t border-purple-900/50" />
-              <span className="flex-shrink-0 mx-3 text-purple-400/60 font-bold font-mono text-[11px] uppercase tracking-widest">OU ENTRE COM CÓDIGO</span>
+              <span className="flex-shrink-0 mx-3 text-purple-400/60 font-bold font-mono text-[11px] uppercase tracking-widest">
+                {t('hub.or_enter_code')}
+              </span>
               <div className="flex-grow border-t border-purple-900/50" />
             </div>
 
             <form onSubmit={joinHanabiRoom} className="flex gap-2 relative group">
               <input 
                 type="text" 
-                placeholder="CÓDIGO" 
+                placeholder={t('hub.enter_code_placeholder')} 
                 maxLength={4}
                 value={hanabiCode}
                 onChange={(e) => setHanabiCode(e.target.value)}
@@ -187,9 +206,9 @@ export function Hub() {
                 type="submit" 
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="px-6 bg-gray-800 hover:bg-red-600 border-2 border-gray-700 hover:border-red-400 rounded-xl font-black tracking-wider transition-all shadow-md text-sm"
+                className="px-6 bg-gray-800 hover:bg-red-600 border-2 border-gray-700 hover:border-red-400 rounded-xl font-black tracking-wider transition-all shadow-md text-sm cursor-pointer"
               >
-                ENTRAR
+                {t('hub.join_btn')}
               </motion.button>
             </form>
           </div>
@@ -206,12 +225,14 @@ export function Hub() {
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-3xl font-black text-white tracking-wider">
-                CONTRA A HUMANIDADE
+                {t('hub.cah_title')}
               </h2>
-              <span className="px-3 py-1 bg-white/10 text-white border border-white/20 rounded-full text-xs font-mono font-bold">3-10 JOGADORES</span>
+              <span className="px-3 py-1 bg-white/10 text-white border border-white/20 rounded-full text-xs font-mono font-bold">
+                {t('hub.cah_tag')}
+              </span>
             </div>
             <p className="text-gray-300 text-sm mb-8 leading-relaxed">
-              O lendário jogo festivo politicamente incorreto! Complete as frases das cartas pretas com suas combinações brancas mais insanas e convença o Czar da rodada.
+              {t('hub.cah_desc')}
             </p>
           </div>
           
@@ -220,22 +241,24 @@ export function Hub() {
               onClick={createCahRoom} 
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.96 }}
-              className="w-full py-4 bg-white hover:bg-gray-100 text-black font-black tracking-widest uppercase rounded-xl overflow-hidden group shadow-[0_0_20px_rgba(255,255,255,0.3)] border border-white relative transition-all"
+              className="w-full py-4 bg-white hover:bg-gray-100 text-black font-black tracking-widest uppercase rounded-xl overflow-hidden group shadow-[0_0_20px_rgba(255,255,255,0.3)] border border-white relative transition-all cursor-pointer text-sm"
             >
-              <span className="relative z-10">CRIAR SALA DE HUMANIDADE</span>
+              <span className="relative z-10">{t('hub.cah_create')}</span>
               <div className="absolute inset-0 h-full w-0 bg-black/10 transition-all duration-500 ease-out group-hover:w-full" />
             </motion.button>
             
             <div className="relative flex items-center py-1">
               <div className="flex-grow border-t border-gray-700" />
-              <span className="flex-shrink-0 mx-3 text-gray-400 font-bold font-mono text-[11px] uppercase tracking-widest">OU ENTRE COM CÓDIGO</span>
+              <span className="flex-shrink-0 mx-3 text-gray-400 font-bold font-mono text-[11px] uppercase tracking-widest">
+                {t('hub.or_enter_code')}
+              </span>
               <div className="flex-grow border-t border-gray-700" />
             </div>
 
             <form onSubmit={joinCahRoom} className="flex gap-2 relative group">
               <input 
                 type="text" 
-                placeholder="CÓDIGO" 
+                placeholder={t('hub.enter_code_placeholder')} 
                 maxLength={4}
                 value={cahCode}
                 onChange={(e) => setCahCode(e.target.value)}
@@ -245,9 +268,9 @@ export function Hub() {
                 type="submit" 
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="px-6 bg-gray-800 hover:bg-white hover:text-black border-2 border-gray-700 hover:border-white rounded-xl font-black tracking-wider transition-all shadow-md text-sm"
+                className="px-6 bg-gray-800 hover:bg-white hover:text-black border-2 border-gray-700 hover:border-white rounded-xl font-black tracking-wider transition-all shadow-md text-sm cursor-pointer"
               >
-                ENTRAR
+                {t('hub.join_btn')}
               </motion.button>
             </form>
           </div>

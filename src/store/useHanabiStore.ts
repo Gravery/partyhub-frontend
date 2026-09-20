@@ -128,7 +128,8 @@ export const useHanabiStore = create<HanabiStore>((set, get) => ({
       }
     }
 
-    const wsUrl = `${wsBaseUrl}/hanabi/${roomId}?token=${token}`;
+    const lang = localStorage.getItem('partyhub_language') || 'en';
+    const wsUrl = `${wsBaseUrl}/hanabi/${roomId}?token=${token}&lang=${lang}`;
     const ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {

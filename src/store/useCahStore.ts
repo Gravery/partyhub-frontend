@@ -140,7 +140,8 @@ export const useCahStore = create<CahStore>((set, get) => ({
       }
     }
 
-    const wsUrl = `${wsBaseUrl}/cah/${roomId}?token=${token}`;
+    const lang = localStorage.getItem('partyhub_language') || 'en';
+    const wsUrl = `${wsBaseUrl}/cah/${roomId}?token=${token}&lang=${lang}`;
     const ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {

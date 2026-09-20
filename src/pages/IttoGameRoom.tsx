@@ -1,7 +1,9 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useGameStore } from '../store/useGameStore';
 import { useAuthStore } from '../store/useAuthStore';
+import { LanguageSelector } from '../components/LanguageSelector';
 import { DndContext, closestCenter, type DragEndEvent, type DragStartEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, rectSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -35,6 +37,7 @@ function SortableCard({
   lockedByName?: string;
   isLockedByOther?: boolean;
 }) {
+  const { t } = useTranslation();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ 
     id,
     disabled: isLockedByOther,
@@ -92,7 +95,7 @@ function SortableCard({
           {/* Badge de Posição na Sequência durante a Ordenação */}
           {position && !isRevealing && (
             <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3 py-0.5 bg-gradient-to-r from-purple-600 to-fuchsia-600 border border-purple-300/80 rounded-full text-white font-mono font-black text-xs shadow-[0_0_15px_rgba(168,85,247,0.6)] z-30 whitespace-nowrap">
-              Posição #{position}
+              {t('common.position', 'Posição')} #{position}
             </div>
           )}
 
@@ -101,10 +104,10 @@ function SortableCard({
             <div className="absolute inset-0 bg-black/75 rounded-2xl flex flex-col items-center justify-center p-3 border-2 border-amber-400 shadow-[0_0_25px_rgba(251,191,36,0.35)] z-40 pointer-events-none animate-pulse">
               <span className="text-3xl mb-1">✋</span>
               <p className="text-xs font-black text-amber-300 text-center tracking-wider uppercase drop-shadow">
-                {lockedByName || 'Jogador'}
+                {lockedByName || t('common.player', 'Jogador')}
               </p>
               <p className="text-[11px] text-amber-200/90 text-center font-medium mt-0.5">
-                está movendo esta carta
+                {t('itto.is_moving_card', 'está movendo esta carta')}
               </p>
             </div>
           )}
@@ -122,7 +125,7 @@ function SortableCard({
           >
             <div className="flex items-center justify-between w-full mb-2 bg-black/60 px-2 py-1 rounded border border-white/10 text-xs">
               <span className={`truncate tracking-wider font-bold ${isOwner ? 'text-emerald-400' : 'text-purple-300'}`}>
-                {isOwner ? 'SUA CARTA' : (ownerName || `Jogador ${ownerId.substring(0, 4)}`)}
+                {isOwner ? t('itto.your_card', 'SUA CARTA') : (ownerName || `${t('common.player', 'Jogador')} ${ownerId.substring(0, 4)}`)}
               </span>
               {isOwner && knownSecret && (
                 <span className="px-1.5 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded font-black font-mono shadow-[0_0_8px_rgba(16,185,129,0.3)]">
@@ -199,6 +202,7 @@ function Confetti() {
 }
 
 export function IttoGameRoom() {
+  const { t } = useTranslation();
   const { roomId } = useParams<{ roomId: string }>(); 
   const navigate = useNavigate();
   const { session } = useAuthStore();
@@ -300,7 +304,7 @@ export function IttoGameRoom() {
     return (
       <div className="flex flex-col h-screen items-center justify-center bg-[#020617] text-purple-400 gap-4">
         <div className="animate-spin text-4xl">🎲</div>
-        <p className="font-semibold text-lg">Entrando na sala {roomId}...</p>
+        <p className="font-semibold text-lg">{t('common.entering_room', { roomId })}</p>
       </div>
     );
   }
@@ -309,7 +313,7 @@ export function IttoGameRoom() {
     return (
       <div className="flex flex-col h-screen items-center justify-center bg-[#020617] text-purple-400 gap-4">
         <div className="animate-spin text-4xl">⌛</div>
-        <p className="font-semibold text-lg">Aguardando dados da sala...</p>
+        <p className="font-semibold text-lg">{t('common.waiting_room_data', 'Aguardando dados da sala...')}</p>
       </div>
     );
   }
@@ -348,12 +352,12 @@ export function IttoGameRoom() {
           className="fixed top-0 left-0 right-0 bg-amber-950/95 border-b border-amber-500/50 p-3 z-50 flex items-center justify-center gap-4 text-amber-200 text-sm shadow-xl backdrop-blur-md"
         >
           <span className="animate-spin text-base">⏳</span>
-          <span>Conexão perdida. Tentando reconectar... (Tentativa {reconnectAttempt}/10)</span>
+          <span>{t('common.reconnecting', { attempt: reconnectAttempt })}</span>
           <button 
             onClick={manualReconnect}
             className="px-3 py-1 bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs uppercase rounded transition-all active:scale-95"
           >
-            Reconectar Agora
+            {t('common.reconnect_now')}
           </button>
         </motion.div>
       )}
@@ -366,8 +370,8 @@ export function IttoGameRoom() {
         >
           <span className="text-2xl animate-pulse">⚠️</span>
           <div>
-            <p className="font-bold text-white">Aguardando reconexão de {disconnectNotice.userName}...</p>
-            <p className="text-xs text-red-300 mt-0.5">A partida está pausada temporariamente para que o jogador possa retornar.</p>
+            <p className="font-bold text-white">{t('common.player_disconnected_wait', { name: disconnectNotice.userName })}</p>
+            <p className="text-xs text-red-300 mt-0.5">{t('common.match_paused')}</p>
           </div>
         </motion.div>
       )}
@@ -380,8 +384,8 @@ export function IttoGameRoom() {
           onClick={clearError}
         >
           <div className="flex items-center justify-between gap-3">
-            <span><strong>Atenção:</strong> {errorMsg}</span>
-            <span className="text-red-400 hover:text-white text-xs underline">Fechar</span>
+            <span><strong>{t('common.attention')}:</strong> {errorMsg}</span>
+            <span className="text-red-400 hover:text-white text-xs underline">{t('common.close')}</span>
           </div>
         </motion.div>
       )}
@@ -394,24 +398,25 @@ export function IttoGameRoom() {
           </h1>
           <div className="flex items-center gap-3 flex-wrap font-mono text-sm uppercase tracking-wider">
             <span className="text-gray-400">
-              SALA: <span className="text-purple-300 font-bold">{roomId}</span>
+              {t('common.room')}: <span className="text-purple-300 font-bold">{roomId}</span>
             </span>
             <button
               onClick={handleCopyInvite}
               className="px-2.5 py-1 bg-purple-950/70 hover:bg-purple-900 border border-purple-500/40 text-purple-300 rounded font-mono text-xs uppercase tracking-wider transition-all hover:shadow-[0_0_10px_rgba(168,85,247,0.3)] active:scale-95"
             >
-              {copied ? "✓ COPIADO!" : "COPIAR CONVITE"}
+              {copied ? t('common.copied') : t('common.copy_invite')}
             </button>
             <span className="text-gray-600">|</span>
             <span className="text-gray-400">
-              NÍVEL: <span className="text-fuchsia-400 font-bold">{gameState.level}</span>
+              {t('common.level')}: <span className="text-fuchsia-400 font-bold">{gameState.level}</span>
             </span>
           </div>
         </div>
 
         <div className="flex items-center gap-4 flex-wrap justify-center">
+          <LanguageSelector />
           <div className="flex flex-col items-center md:items-end">
-            <p className="text-xs text-gray-400 uppercase tracking-wider mb-1 font-medium">Jogadores Conectados</p>
+            <p className="text-xs text-gray-400 uppercase tracking-wider mb-1 font-medium">{t('common.connected_players')}</p>
             <div className="flex gap-2 flex-wrap justify-center">
               {gameState.players.map((p: string) => {
                 const isOnline = gameState.playerConnected?.[p] !== false;
@@ -425,7 +430,7 @@ export function IttoGameRoom() {
                     }`}
                   >
                     {gameState.playerNames?.[p] || p.substring(0, 6)}
-                    {!isOnline && ' (Desconectado)'}
+                    {!isOnline && ` ${t('common.disconnected')}`}
                   </span>
                 );
               })}
@@ -436,7 +441,7 @@ export function IttoGameRoom() {
             onClick={() => { disconnect(); navigate('/hub'); }}
             className="px-4 py-2 bg-red-950/40 hover:bg-red-900/80 border border-red-500/50 text-red-400 font-semibold text-xs uppercase tracking-wider rounded-lg transition-all hover:shadow-[0_0_15px_rgba(239,68,68,0.4)] whitespace-nowrap"
           >
-            Sair da Sala
+            {t('common.exit_room')}
           </button>
         </div>
       </header>
@@ -450,9 +455,9 @@ export function IttoGameRoom() {
             className="text-center space-y-8 w-full max-w-2xl"
           >
             <div>
-              <h2 className="text-3xl font-black text-purple-200 tracking-wide mb-2">Sala de Espera</h2>
+              <h2 className="text-3xl font-black text-purple-200 tracking-wide mb-2">{t('itto.lobby_title')}</h2>
               <p className="text-gray-400 text-sm">
-                Aguarde todos os jogadores entrarem e clicarem em "Estou Pronto" para começar.
+                {t('itto.lobby_desc')}
               </p>
             </div>
             
@@ -466,7 +471,7 @@ export function IttoGameRoom() {
                     <div className="flex items-center gap-3">
                       <span className="w-2.5 h-2.5 rounded-full bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.8)]" />
                       <span className={`font-medium ${isMe ? 'text-green-400 font-bold' : 'text-purple-200'}`}>
-                        {pName} {isMe && "(Você)"}
+                        {pName} {isMe && t('common.you')}
                       </span>
                     </div>
 
@@ -480,7 +485,7 @@ export function IttoGameRoom() {
                         }`}
                       >
                         <span>{isReady ? '✓' : '👍'}</span>
-                        <span>{isReady ? 'PRONTO! (Clique para cancelar)' : 'ESTOU PRONTO'}</span>
+                        <span>{isReady ? t('itto.ready') : t('itto.not_ready')}</span>
                       </button>
                     ) : (
                       <span className={`text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full ${
@@ -488,7 +493,7 @@ export function IttoGameRoom() {
                           ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
                           : 'bg-amber-500/10 text-amber-300 border border-amber-500/20 animate-pulse'
                       }`}>
-                        {isReady ? '✓ Pronto' : '⏳ Aguardando...'}
+                        {isReady ? t('itto.is_ready') : t('itto.waiting')}
                       </span>
                     )}
                   </div>
@@ -506,11 +511,11 @@ export function IttoGameRoom() {
                   className="px-10 py-5 bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-500 hover:to-fuchsia-500 border-2 border-purple-300 rounded-2xl font-black tracking-wider text-xl transition-all shadow-2xl relative overflow-hidden group disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed"
                 >
                   <span className="relative z-10">
-                    INICIAR PARTIDA (NÍVEL {gameState.level})
+                    {t('itto.start_game')} ({t('common.level')} {gameState.level})
                   </span>
                 </motion.button>
                 {gameState.players.length < 2 && (
-                  <p className="text-xs text-amber-400 font-medium">São necessários pelo menos 2 jogadores para iniciar.</p>
+                  <p className="text-xs text-amber-400 font-medium">{t('itto.min_players_warn')}</p>
                 )}
               </div>
             )}
@@ -526,7 +531,7 @@ export function IttoGameRoom() {
               {gameState.theme?.category && (
                 <div className="mb-3">
                   <span className="px-3.5 py-1 bg-amber-500/10 border border-amber-500/30 text-amber-300 rounded-full text-xs font-semibold uppercase tracking-wider">
-                    Categoria: {gameState.theme.category.replace('_', ' ')}
+                    {t('itto.category_label', { category: gameState.theme.category.replace('_', ' ') })}
                   </span>
                 </div>
               )}
@@ -536,18 +541,18 @@ export function IttoGameRoom() {
               
               <div className="flex items-center justify-center gap-3 md:gap-6 text-sm md:text-base font-semibold w-full">
                 <div className="bg-black/70 px-4 py-3 rounded-xl border border-red-500/40 text-red-300 flex-1 text-center shadow-lg">
-                  <span className="block text-[10px] text-red-400/80 uppercase font-mono tracking-widest mb-1">Extremo Mínimo (1)</span>
+                  <span className="block text-[10px] text-red-400/80 uppercase font-mono tracking-widest mb-1">{t('itto.min_extreme')}</span>
                   {gameState.theme?.min_label}
                 </div>
                 
                 <div className="flex items-center gap-1.5 text-fuchsia-400 font-mono text-xs uppercase tracking-widest whitespace-nowrap shrink-0 px-3 py-2 bg-fuchsia-950/40 rounded-full border border-fuchsia-500/30 shadow-md">
                   <span>◀</span>
-                  <span>ESPECTRO</span>
+                  <span>{t('itto.spectrum')}</span>
                   <span>▶</span>
                 </div>
 
                 <div className="bg-black/70 px-4 py-3 rounded-xl border border-purple-500/40 text-purple-300 flex-1 text-center shadow-lg">
-                  <span className="block text-[10px] text-purple-400/80 uppercase font-mono tracking-widest mb-1">Extremo Máximo (100)</span>
+                  <span className="block text-[10px] text-purple-400/80 uppercase font-mono tracking-widest mb-1">{t('itto.max_extreme')}</span>
                   {gameState.theme?.max_label}
                 </div>
               </div>
@@ -557,10 +562,13 @@ export function IttoGameRoom() {
             <div className="max-w-3xl mx-auto mb-10 bg-black/60 backdrop-blur-md border border-purple-500/30 rounded-2xl p-4 shadow-xl">
               <div className="flex items-center justify-between border-b border-white/10 pb-2.5 mb-3">
                 <span className="text-xs font-black uppercase tracking-wider text-purple-300 flex items-center gap-2">
-                  <span>📝</span> Progresso das Pistas no Grupo
+                  <span>📝</span> {t('itto.clues_group_progress')}
                 </span>
                 <span className="text-xs font-mono text-gray-400">
-                  {Object.values(gameState.publicHands).filter((c) => c.description !== "").length} de {Object.keys(gameState.publicHands).length} pistas enviadas
+                  {t('itto.clues_sent_progress', {
+                    current: Object.values(gameState.publicHands).filter((c) => c.description !== "").length,
+                    total: Object.keys(gameState.publicHands).length
+                  })}
                 </span>
               </div>
 
@@ -582,7 +590,7 @@ export function IttoGameRoom() {
                       }`}
                     >
                       <span className="font-bold truncate max-w-[110px]">
-                        {pName} {isMe && '(Você)'}
+                        {pName} {isMe && t('common.you')}
                       </span>
                       <div className="flex items-center gap-2">
                         <span className="font-mono text-[11px] text-gray-400">
@@ -595,7 +603,7 @@ export function IttoGameRoom() {
                               : 'bg-amber-500/10 text-amber-300 border border-amber-500/20 animate-pulse'
                           }`}
                         >
-                          {isDone ? '✓ Pronto' : 'Escrevendo'}
+                          {isDone ? t('itto.is_ready_badge') : t('itto.writing_badge')}
                         </span>
                       </div>
                     </div>
@@ -626,7 +634,7 @@ export function IttoGameRoom() {
                       style={{ transformStyle: "preserve-3d" }}
                     >
                       <div className="absolute top-4 left-4 bg-black/60 px-3 py-1 rounded text-purple-300 text-xs font-mono font-bold border border-purple-500/50">
-                        CARTA {cardNumber}
+                        {t('itto.card_num', { num: cardNumber })}
                       </div>
                       <div className={`text-8xl font-black ${isSubmitted ? 'text-emerald-400 drop-shadow-[0_0_15px_rgba(16,185,129,0.8)]' : 'text-purple-400 neon-text-shadow'}`}>
                         {secretValue}
@@ -641,32 +649,32 @@ export function IttoGameRoom() {
                             initial={{ scale: 0 }} animate={{ scale: 1 }} 
                             className="text-emerald-400 font-bold bg-emerald-950/50 border border-emerald-500/50 py-2.5 rounded-xl tracking-wider text-sm shadow-[0_0_15px_rgba(16,185,129,0.3)] text-center"
                           >
-                            ✓ PISTA ENVIADA
+                            {t('itto.clue_sent_badge')}
                           </motion.div>
                           <button 
                             onClick={() => sendMessage('UNSUBMIT_DESCRIPTION', { cardID })}
                             className="text-xs text-purple-400 hover:text-white underline underline-offset-2 font-medium tracking-wider text-center uppercase"
                           >
-                            Editar Novamente
+                            {t('itto.edit_clue_btn')}
                           </button>
                         </div>
                       ) : (
                         <div className="flex flex-col gap-3">
                           <input 
                             type="text" 
-                            placeholder="Digite uma pista..." 
+                            placeholder={t('itto.clue_input_placeholder')} 
                             value={inputs[cardID] || ''} 
                             onChange={(e) => setInputs({...inputs, [cardID]: e.target.value})} 
                             onKeyDown={(e) => e.key === 'Enter' && handleDescSubmit(cardID)} 
                             className="w-full bg-black/80 border-2 border-gray-700 rounded-xl p-3.5 text-center text-base focus:border-purple-400 outline-none focus:shadow-[0_0_20px_rgba(168,85,247,0.3)] transition-all placeholder:text-gray-600 font-medium" 
                           />
-                          <p className="text-[11px] text-gray-500 italic text-center">Proibido usar algarismos ou números!</p>
+                          <p className="text-[11px] text-gray-500 italic text-center">{t('itto.no_numbers_rule')}</p>
                           <motion.button 
                             whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.96 }}
                             onClick={() => handleDescSubmit(cardID)} 
                             className="w-full py-3 bg-purple-600 hover:bg-purple-500 font-black tracking-wider uppercase rounded-xl transition shadow-[0_0_15px_rgba(147,51,234,0.4)] text-sm"
                           >
-                            Confirmar Pista
+                            {t('itto.confirm_clue_btn')}
                           </motion.button>
                         </div>
                       )}
@@ -687,11 +695,11 @@ export function IttoGameRoom() {
               <div className="text-center mb-4">
                 {gameState.theme?.category && (
                   <span className="px-3 py-0.5 bg-purple-500/10 border border-purple-500/30 text-purple-300 rounded-full text-xs font-semibold uppercase tracking-wider inline-block mb-2">
-                    Categoria: {gameState.theme.category.replace('_', ' ')}
+                    {t('itto.category_label', { category: gameState.theme.category.replace('_', ' ') })}
                   </span>
                 )}
                 <h2 className="text-2xl md:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-purple-500 tracking-wide">
-                  {gameState.theme?.title || "Organizem as Cartas em Ordem Crescente"}
+                  {gameState.theme?.title || t('itto.sort_ascending_title')}
                 </h2>
               </div>
 
@@ -701,7 +709,7 @@ export function IttoGameRoom() {
                   <span className="truncate max-w-[200px] md:max-w-xs">{gameState.theme?.min_label}</span>
                 </div>
                 <span className="text-purple-400/60 font-mono text-xs uppercase tracking-widest whitespace-nowrap hidden sm:inline">
-                  ORDEM CRESCENTE (1 ➔ 100)
+                  {t('itto.ascending_order')}
                 </span>
                 <div className="text-purple-300 flex items-center gap-1.5 whitespace-nowrap text-right">
                   <span className="truncate max-w-[200px] md:max-w-xs">{gameState.theme?.max_label}</span>
@@ -790,7 +798,7 @@ export function IttoGameRoom() {
                         }`}
                       >
                         <span>{isSorted ? '✓' : '🔒'}</span>
-                        <span>{isSorted ? 'VOCÊ CONCORDOU! (Clique para alterar)' : 'CONCORDAR COM ESTA ORDEM'}</span>
+                        <span>{isSorted ? t('itto.you_agreed') : t('itto.agree_order')}</span>
                       </button>
                     );
                   } else {
@@ -798,7 +806,7 @@ export function IttoGameRoom() {
                       <div key={pid} className="px-5 py-3 bg-black/60 rounded-xl border border-white/10 flex items-center gap-3">
                         <span className="font-medium text-gray-300">{pName}</span>
                         <span className={`text-xs font-bold uppercase tracking-wider ${isSorted ? 'text-emerald-400' : 'text-amber-400 animate-pulse'}`}>
-                          {isSorted ? '✓ Concordou' : '🤔 Analisando...'}
+                          {isSorted ? t('itto.agreed_badge') : t('itto.analyzing_badge')}
                         </span>
                       </div>
                     );
@@ -807,7 +815,7 @@ export function IttoGameRoom() {
               </div>
 
               <p className="text-xs text-gray-500 text-center">
-                Dica: Se qualquer jogador mover uma carta na mesa, a confirmação de todos será desmarcada para nova avaliação.
+                {t('itto.sorting_hint')}
               </p>
 
               {gameState.players[0] === session?.user?.id && (
@@ -817,7 +825,7 @@ export function IttoGameRoom() {
                   whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
                   className="px-12 py-4 bg-gradient-to-r from-fuchsia-600 to-purple-600 text-white hover:from-fuchsia-500 hover:to-purple-500 rounded-2xl font-black tracking-wider text-lg transition-all shadow-[0_0_30px_rgba(192,38,211,0.5)] border border-fuchsia-400 disabled:opacity-40 disabled:grayscale disabled:cursor-not-allowed mt-2"
                 >
-                  REVELAR RESULTADO
+                  {t('itto.reveal_result_btn')}
                 </motion.button>
               )}
             </div>
@@ -831,7 +839,7 @@ export function IttoGameRoom() {
               initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", bounce: 0.5 }}
               className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600 mb-12 tracking-wide drop-shadow-[0_0_20px_rgba(56,189,248,0.5)]"
             >
-              Revelação das Cartas
+              {t('itto.cards_reveal_heading')}
             </motion.h2>
             
             <div className="flex justify-center flex-wrap gap-6 mb-16">
@@ -868,7 +876,7 @@ export function IttoGameRoom() {
                 <h3 className={`text-4xl md:text-6xl font-black mb-4 tracking-wide ${
                   roundResult.win ? 'text-emerald-400' : 'text-red-500'
                 }`}>
-                  {roundResult.win ? 'VITÓRIA!' : 'FIM DE JOGO!'}
+                  {roundResult.win ? t('itto.victory_title') : t('itto.defeat_title')}
                 </h3>
                 <p className="text-xl mb-8 text-gray-200 font-medium">{roundResult.msg}</p>
                 
@@ -878,7 +886,7 @@ export function IttoGameRoom() {
                     onClick={() => sendMessage('RESTART_GAME')} 
                     className="px-8 py-4 bg-red-600 hover:bg-red-500 border-2 border-red-400 rounded-xl font-bold tracking-wider text-lg shadow-[0_0_20px_rgba(239,68,68,0.5)] transition-all"
                   >
-                    Jogar Novamente
+                    {t('itto.play_again')}
                   </motion.button>
                 ) : (
                   <div className="flex flex-col items-center gap-3">
@@ -887,11 +895,11 @@ export function IttoGameRoom() {
                       onClick={() => sendMessage('ADVANCE_ROUND')} 
                       className="px-10 py-5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 border-2 border-emerald-300 text-white font-black text-xl tracking-wider uppercase rounded-2xl shadow-[0_0_40px_rgba(16,185,129,0.5)] transition-all flex items-center gap-3 active:scale-95"
                     >
-                      <span>Avançar para o Nível {roundResult.nextLevel || (gameState.level + 1)}</span>
+                      <span>{t('itto.advance_level', { level: roundResult.nextLevel || (gameState.level + 1) })}</span>
                       <span>➔</span>
                     </motion.button>
                     <span className="text-xs text-emerald-300/80 font-mono uppercase tracking-wider">
-                      Clique para iniciar a próxima rodada quando todos terminarem de analisar a mesa
+                      {t('itto.advance_hint')}
                     </span>
                   </div>
                 )}

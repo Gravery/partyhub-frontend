@@ -147,7 +147,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       }
     }
 
-    const wsUrl = `${wsBaseUrl}/${gameSlug}/${roomId}?token=${token}`;
+    const lang = localStorage.getItem('partyhub_language') || 'en';
+    const wsUrl = `${wsBaseUrl}/${gameSlug}/${roomId}?token=${token}&lang=${lang}`;
     const ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {

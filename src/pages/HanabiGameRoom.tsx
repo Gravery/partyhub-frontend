@@ -1,22 +1,22 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useHanabiStore, type HanabiCard } from '../store/useHanabiStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FireworksCanvas } from '../components/FireworksCanvas';
+import { LanguageSelector } from '../components/LanguageSelector';
 
-// Mapeamento de cores para classes Tailwind, nomes em Português e abreviações curtas e distintas
+// Mapeamento de cores para classes Tailwind e efeitos visuais
 export const COLOR_CONFIG: Record<
   string,
-  { bg: string; border: string; text: string; glow: string; name: string; short: string; tag: string }
+  { bg: string; border: string; text: string; glow: string; tag: string }
 > = {
   red: {
     bg: 'bg-red-600',
     border: 'border-red-400',
     text: 'text-red-300',
     glow: 'shadow-[0_0_20px_rgba(239,68,68,0.5)]',
-    name: 'Vermelho',
-    short: 'VERM',
     tag: 'VM',
   },
   yellow: {
@@ -24,8 +24,6 @@ export const COLOR_CONFIG: Record<
     border: 'border-amber-300',
     text: 'text-amber-300',
     glow: 'shadow-[0_0_20px_rgba(251,191,36,0.5)]',
-    name: 'Amarelo',
-    short: 'AMAR',
     tag: 'AM',
   },
   green: {
@@ -33,8 +31,6 @@ export const COLOR_CONFIG: Record<
     border: 'border-emerald-400',
     text: 'text-emerald-300',
     glow: 'shadow-[0_0_20px_rgba(16,185,129,0.5)]',
-    name: 'Verde',
-    short: 'VERD',
     tag: 'VD',
   },
   blue: {
@@ -42,8 +38,6 @@ export const COLOR_CONFIG: Record<
     border: 'border-blue-400',
     text: 'text-blue-300',
     glow: 'shadow-[0_0_20px_rgba(59,130,246,0.5)]',
-    name: 'Azul',
-    short: 'AZUL',
     tag: 'AZ',
   },
   white: {
@@ -51,8 +45,6 @@ export const COLOR_CONFIG: Record<
     border: 'border-slate-300',
     text: 'text-slate-100',
     glow: 'shadow-[0_0_20px_rgba(255,255,255,0.4)]',
-    name: 'Branco',
-    short: 'BRAN',
     tag: 'BR',
   },
   multicolor: {
@@ -60,45 +52,28 @@ export const COLOR_CONFIG: Record<
     border: 'border-white/80',
     text: 'text-fuchsia-300',
     glow: 'shadow-[0_0_25px_rgba(236,72,153,0.6)]',
-    name: 'Multicor',
-    short: 'MULT',
     tag: 'MC',
   },
 };
 
+export const getColorName = (color: string, t: (k: string) => string) => {
+  return t(`hanabi.colors.${color}`) || color;
+};
+
+export const getColorShort = (color: string, t: (k: string) => string) => {
+  return t(`hanabi.colors_short.${color}`) || color.substring(0, 4).toUpperCase();
+};
+
 const GAME_MODES = [
-  {
-    id: 'classic',
-    name: 'Clássico',
-    subtitle: '5 Cores • 50 Cartas • Máx 25 Pts',
-    desc: 'O modo original do Hanabi com as 5 cores clássicas e 5 foguetes.',
-    icon: '🎆',
-  },
-  {
-    id: 'rainbow_full',
-    name: 'Arco-Íris Completo',
-    subtitle: '6 Cores • 60 Cartas • Máx 30 Pts',
-    desc: 'Adiciona a 6ª cor Multicor com 10 cartas e um 6º foguete independente.',
-    icon: '🌈',
-  },
-  {
-    id: 'rainbow_one',
-    name: 'Arco-Íris Único',
-    subtitle: '6 Cores • 55 Cartas • Alta Tensão',
-    desc: 'Adiciona a 6ª cor com apenas 1 cópia de cada número (1 ao 5). Descartar o arco-íris é fatal!',
-    icon: '⚡',
-  },
-  {
-    id: 'rainbow_wild',
-    name: 'Arco-Íris Coringa (Wild)',
-    subtitle: '6 Cores • 60 Cartas • Dicas Selvagens',
-    desc: 'Cartas arco-íris respondem como coringa em qualquer dica de cor! Constrói o 6º foguete.',
-    icon: '🃏',
-  },
+  { id: 'classic', icon: '🎆' },
+  { id: 'rainbow_full', icon: '🌈' },
+  { id: 'rainbow_one', icon: '⚡' },
+  { id: 'rainbow_wild', icon: '🃏' },
 ];
 
 // Componente para renderizar a carta de um parceiro (face-up com cor e número visíveis)
 function TeammateCard({ card, isHighlighted }: { card: HanabiCard; isHighlighted?: boolean }) {
+  const { t } = useTranslation();
   const conf = COLOR_CONFIG[card.color] || COLOR_CONFIG.white;
   const isWhite = card.color === 'white';
 
@@ -112,7 +87,7 @@ function TeammateCard({ card, isHighlighted }: { card: HanabiCard; isHighlighted
     >
       {isHighlighted && (
         <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-cyan-400 text-slate-950 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider shadow-lg whitespace-nowrap animate-bounce z-20">
-          💡 Dica!
+          {t('hanabi.clue_badge')}
         </div>
       )}
 
@@ -123,7 +98,7 @@ function TeammateCard({ card, isHighlighted }: { card: HanabiCard; isHighlighted
             isWhite ? 'text-slate-700' : 'text-white/90'
           }`}
         >
-          {conf.short}
+          {getColorShort(card.color, t)}
         </span>
       </div>
 
@@ -139,7 +114,7 @@ function TeammateCard({ card, isHighlighted }: { card: HanabiCard; isHighlighted
       <div className="w-full flex flex-wrap gap-1 justify-center">
         {card.known_color && (
           <span className="px-1 py-0.2 bg-black/75 text-white rounded text-[9px] font-bold uppercase border border-white/20">
-            {COLOR_CONFIG[card.known_color]?.short || card.known_color.substring(0, 4)}
+            {getColorShort(card.known_color, t)}
           </span>
         )}
         {card.known_number ? (
@@ -170,6 +145,7 @@ function MyCard({
   onPlay: () => void;
   onDiscard: () => void;
 }) {
+  const { t } = useTranslation();
   const knownConf = card.known_color ? COLOR_CONFIG[card.known_color] : null;
 
   return (
@@ -190,7 +166,7 @@ function MyCard({
       >
         {isHighlighted && (
           <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-cyan-400 text-slate-950 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider shadow-lg whitespace-nowrap z-20 animate-bounce">
-            💡 Nova Dica!
+            {t('hanabi.new_clue_badge')}
           </div>
         )}
 
@@ -213,24 +189,24 @@ function MyCard({
           )}
 
           <div className="flex flex-wrap gap-1 justify-center">
-            {knownConf ? (
+            {knownConf && card.known_color ? (
               <span
                 className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${knownConf.bg} ${
                   knownConf.text === 'text-slate-100' ? 'text-slate-950 font-black' : 'text-white'
                 }`}
               >
-                {knownConf.short}
+                {getColorShort(card.known_color, t)}
               </span>
             ) : (
               <span className="px-2 py-0.5 bg-black/50 border border-white/10 rounded-full text-[10px] text-gray-400 font-mono">
-                Cor ?
+                {t('hanabi.color_unknown')}
               </span>
             )}
           </div>
         </div>
 
         <div className="text-[10px] text-center text-gray-500 uppercase font-mono z-10">
-          {card.known_color || card.known_number ? 'Dica Anotada' : 'Sem Dicas'}
+          {card.known_color || card.known_number ? t('hanabi.clue_recorded') : t('hanabi.no_clues')}
         </div>
       </div>
 
@@ -240,17 +216,17 @@ function MyCard({
           <button
             onClick={onPlay}
             className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 border border-emerald-400 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-md transition-all active:scale-95 shadow-emerald-500/20"
-            title="Tentar jogar esta carta no show"
+            title={t('hanabi.play_card_tooltip')}
           >
-            Jogar
+            {t('hanabi.play_card')}
           </button>
           <button
             onClick={onDiscard}
             disabled={!canDiscard}
             className="flex-1 py-2 bg-gray-800 hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed border border-gray-600 text-gray-200 font-bold text-xs uppercase tracking-wider rounded-xl shadow-md transition-all active:scale-95"
-            title={canDiscard ? 'Descartar para recuperar 1 dica' : 'Máximo de 8 dicas já atingido'}
+            title={canDiscard ? t('hanabi.discard_card_tooltip') : t('hanabi.discard_card_disabled_tooltip')}
           >
-            Descartar
+            {t('hanabi.discard_card')}
           </button>
         </div>
       )}
@@ -274,6 +250,7 @@ function GiveClueModal({
   isWildMode: boolean;
   onConfirmClue: (type: 'color' | 'number', value: string | number) => void;
 }) {
+  const { t } = useTranslation();
   const [selectedType, setSelectedType] = useState<'color' | 'number'>('color');
   const [selectedValue, setSelectedValue] = useState<string | number>('');
 
@@ -310,7 +287,7 @@ function GiveClueModal({
       >
         <div className="flex justify-between items-center mb-4 border-b border-purple-900/50 pb-3">
           <h3 className="text-xl font-black text-purple-200">
-            Dar Dica para <span className="text-fuchsia-400">{targetPlayerName}</span>
+            {t('hanabi.give_clue_modal_title', { name: targetPlayerName })}
           </h3>
           <button onClick={onClose} className="text-gray-400 hover:text-white text-lg font-bold">
             ✕
@@ -318,11 +295,10 @@ function GiveClueModal({
         </div>
 
         <p className="text-xs text-gray-300 mb-4">
-          A dica custa <strong>1 ficha azul de dica</strong> e deve ser completa: apontará todas as cartas
-          do jogador que coincidem com sua escolha.
+          {t('hanabi.give_clue_modal_desc')}
           {isWildMode && (
             <span className="block mt-1 text-fuchsia-300 font-medium">
-              ✨ <strong>Regra Coringa:</strong> Cartas Multicor acendem para qualquer dica de cor escolhida!
+              {t('hanabi.give_clue_modal_wild_desc')}
             </span>
           )}
         </p>
@@ -345,7 +321,7 @@ function GiveClueModal({
                 <TeammateCard card={card} />
                 {isMatch && (
                   <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-amber-400 text-slate-950 font-black text-[9px] px-1.5 py-0.5 rounded-full shadow-lg whitespace-nowrap">
-                    DICA!
+                    {t('hanabi.clue_badge')}
                   </div>
                 )}
               </div>
@@ -366,7 +342,7 @@ function GiveClueModal({
                 : 'bg-black/50 text-gray-400 hover:text-white'
             }`}
           >
-            Dica de Cor
+            {t('hanabi.clue_type_color')}
           </button>
           <button
             onClick={() => {
@@ -379,7 +355,7 @@ function GiveClueModal({
                 : 'bg-black/50 text-gray-400 hover:text-white'
             }`}
           >
-            Dica de Número
+            {t('hanabi.clue_type_number')}
           </button>
         </div>
 
@@ -399,7 +375,7 @@ function GiveClueModal({
                       : 'border-transparent opacity-70 hover:opacity-100'
                   } ${conf.bg} ${conf.text === 'text-slate-100' ? 'text-slate-950' : 'text-white'}`}
                 >
-                  {conf.short} ({conf.name})
+                  {getColorShort(col, t)} ({getColorName(col, t)})
                 </button>
               );
             })}
@@ -430,13 +406,13 @@ function GiveClueModal({
             onClick={onClose}
             className="flex-1 py-3 bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold text-xs uppercase tracking-wider rounded-xl transition"
           >
-            Cancelar
+            {t('common.cancel')}
           </button>
           <button
             onClick={handleConfirm}
             className="flex-1 py-3 bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-500 hover:to-fuchsia-500 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-lg transition active:scale-95"
           >
-            Confirmar Dica (-1 Ficha)
+            {t('hanabi.confirm_clue_btn')}
           </button>
         </div>
       </motion.div>
@@ -456,6 +432,7 @@ function DiscardModal({
   discardPile: HanabiCard[];
   activeFireworksColors: string[];
 }) {
+  const { t } = useTranslation();
   if (!isOpen) return null;
 
   const grouped: Record<string, number[]> = {};
@@ -481,7 +458,7 @@ function DiscardModal({
       >
         <div className="flex justify-between items-center mb-4 border-b border-white/10 pb-3">
           <h3 className="text-xl font-black text-purple-200">
-            Cartas Descartadas ({discardPile.length})
+            {t('hanabi.discarded_modal_title', { count: discardPile.length })}
           </h3>
           <button onClick={onClose} className="text-gray-400 hover:text-white font-bold text-lg">
             ✕
@@ -489,8 +466,7 @@ function DiscardModal({
         </div>
 
         <p className="text-xs text-gray-400 mb-6">
-          Atenção às cartas já perdidas: há apenas uma cópia do <strong>5</strong> e duas cópias dos{' '}
-          <strong>2, 3 e 4</strong> (no Arco-Íris Único há apenas uma cópia de cada).
+          {t('hanabi.discarded_modal_desc')}
         </p>
 
         <div className="space-y-4 overflow-y-auto flex-grow pr-2">
@@ -508,12 +484,12 @@ function DiscardModal({
                     conf.bg
                   } ${conf.text === 'text-slate-100' ? 'text-slate-950 font-black' : 'text-white'}`}
                 >
-                  {conf.short} ({conf.name})
+                  {getColorShort(color, t)} ({getColorName(color, t)})
                 </span>
 
                 <div className="flex gap-2 flex-wrap flex-grow">
                   {numbers.length === 0 ? (
-                    <span className="text-xs text-gray-500 italic">Nenhuma descartada</span>
+                    <span className="text-xs text-gray-500 italic">{t('hanabi.none_discarded')}</span>
                   ) : (
                     numbers.map((num, i) => (
                       <span
@@ -534,7 +510,7 @@ function DiscardModal({
           onClick={onClose}
           className="mt-6 w-full py-3 bg-gray-800 hover:bg-gray-700 text-gray-200 font-bold text-xs uppercase tracking-wider rounded-xl transition"
         >
-          Fechar
+          {t('common.close')}
         </button>
       </motion.div>
     </div>
@@ -542,6 +518,7 @@ function DiscardModal({
 }
 
 export function HanabiGameRoom() {
+  const { t } = useTranslation();
   const { roomId } = useParams<{ roomId: string }>();
   const navigate = useNavigate();
   const { session } = useAuthStore();
@@ -594,26 +571,26 @@ export function HanabiGameRoom() {
         timestamp: lastPlayResult.timestamp,
       });
 
-      const colorName = COLOR_CONFIG[lastPlayResult.color]?.name || lastPlayResult.color;
+      const colorName = getColorName(lastPlayResult.color, t);
       setPlayToast({
         type: 'success',
         message: lastPlayResult.isFiveBonus
-          ? `🎆 ESPETACULAR! Foguete ${colorName} Concluído com um 5!`
-          : `✨ Foguete ${colorName} Subiu para o Nível ${lastPlayResult.fireworksLevel}!`,
+          ? t('hanabi.toast_five_bonus', { color: colorName })
+          : t('hanabi.toast_firework_up', { color: colorName, level: lastPlayResult.fireworksLevel }),
         submessage: lastPlayResult.isFiveBonus
-          ? `${lastPlayResult.userName} jogou o 5 e recuperou 1 ficha azul de dica para a equipe!`
-          : `${lastPlayResult.userName} jogou ${colorName} ${lastPlayResult.number} com perfeição!`,
+          ? t('hanabi.toast_five_bonus_sub', { user: lastPlayResult.userName })
+          : t('hanabi.toast_firework_up_sub', { user: lastPlayResult.userName, color: colorName, number: lastPlayResult.number }),
       });
     } else {
       // Jogada errada: tela treme e detona fusível
       setIsShaking(true);
       setTimeout(() => setIsShaking(false), 600);
 
-      const colorName = COLOR_CONFIG[lastPlayResult.color]?.name || lastPlayResult.color;
+      const colorName = getColorName(lastPlayResult.color, t);
       setPlayToast({
         type: 'error',
-        message: `💥 A PÓLVORA DETONOU! Erro de ${lastPlayResult.userName}`,
-        submessage: `Tentou jogar ${colorName} ${lastPlayResult.number}, mas não encaixava. Erros: ${lastPlayResult.fuseTokens}/3!`,
+        message: t('hanabi.toast_explosion', { user: lastPlayResult.userName }),
+        submessage: t('hanabi.toast_explosion_sub', { color: colorName, number: lastPlayResult.number, fuses: lastPlayResult.fuseTokens }),
       });
     }
 
@@ -622,7 +599,7 @@ export function HanabiGameRoom() {
     }, 4500);
 
     return () => clearTimeout(timer);
-  }, [lastPlayResult]);
+  }, [lastPlayResult, t]);
 
   const handleCopyInvite = () => {
     if (navigator.clipboard) {
@@ -645,7 +622,7 @@ export function HanabiGameRoom() {
     return (
       <div className="flex flex-col h-screen items-center justify-center bg-[#020617] text-purple-400 gap-4">
         <div className="animate-spin text-4xl">🎆</div>
-        <p className="font-semibold text-lg">Entrando no espetáculo Hanabi {roomId}...</p>
+        <p className="font-semibold text-lg">{t('hanabi.entering_hanabi', { roomId })}</p>
       </div>
     );
   }
@@ -654,7 +631,7 @@ export function HanabiGameRoom() {
     return (
       <div className="flex flex-col h-screen items-center justify-center bg-[#020617] text-purple-400 gap-4">
         <div className="animate-spin text-4xl">⏳</div>
-        <p className="font-semibold text-lg">Carregando dados da apresentação...</p>
+        <p className="font-semibold text-lg">{t('hanabi.loading_show_data')}</p>
       </div>
     );
   }
@@ -707,12 +684,12 @@ export function HanabiGameRoom() {
       {isReconnecting && (
         <div className="fixed top-0 left-0 right-0 bg-amber-950/95 border-b border-amber-500/50 p-3 z-50 flex items-center justify-center gap-4 text-amber-200 text-sm shadow-xl backdrop-blur-md">
           <span className="animate-spin text-base">⏳</span>
-          <span>Conexão perdida. Tentando reconectar... (Tentativa {reconnectAttempt}/10)</span>
+          <span>{t('common.reconnecting', { attempt: reconnectAttempt })}</span>
           <button
             onClick={manualReconnect}
             className="px-3 py-1 bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs uppercase rounded transition-all"
           >
-            Reconectar Agora
+            {t('common.reconnect_now')}
           </button>
         </div>
       )}
@@ -723,10 +700,10 @@ export function HanabiGameRoom() {
           <span className="text-2xl animate-pulse">⚠️</span>
           <div>
             <p className="font-bold text-white">
-              Aguardando reconexão de {disconnectNotice.userName}...
+              {t('common.player_disconnected_wait', { name: disconnectNotice.userName })}
             </p>
             <p className="text-xs text-red-300 mt-0.5">
-              A partida está pausada temporariamente para permitir o retorno do jogador.
+              {t('common.match_paused')}
             </p>
           </div>
         </div>
@@ -739,9 +716,9 @@ export function HanabiGameRoom() {
           onClick={clearError}
         >
           <span>
-            <strong>Atenção:</strong> {errorMsg}
+            <strong>{t('common.attention')}:</strong> {errorMsg}
           </span>
-          <span className="text-red-400 text-xs underline">Fechar</span>
+          <span className="text-red-400 text-xs underline">{t('common.close')}</span>
         </div>
       )}
 
@@ -753,13 +730,13 @@ export function HanabiGameRoom() {
           </h1>
           <div className="flex items-center gap-3 flex-wrap font-mono text-sm uppercase tracking-wider">
             <span className="text-gray-400">
-              SALA: <span className="text-purple-300 font-bold">{roomId}</span>
+              {t('common.room')}: <span className="text-purple-300 font-bold">{roomId}</span>
             </span>
             <button
               onClick={handleCopyInvite}
               className="px-2.5 py-1 bg-purple-950/70 hover:bg-purple-900 border border-purple-500/40 text-purple-300 rounded font-mono text-xs uppercase tracking-wider transition-all"
             >
-              {copied ? '✓ COPIADO!' : 'COPIAR CONVITE'}
+              {copied ? t('common.copied') : t('common.copy_invite')}
             </button>
           </div>
         </div>
@@ -775,8 +752,8 @@ export function HanabiGameRoom() {
               }`}
             >
               {isMyTurn
-                ? 'SUA VEZ DE JOGAR!'
-                : `Vez de: ${gameState.playerNames?.[gameState.currentPlayer] || 'Jogador'}`}
+                ? t('hanabi.your_turn_banner')
+                : t('hanabi.turn_of_player', { name: gameState.playerNames?.[gameState.currentPlayer] || t('common.player') })}
             </div>
           )}
 
@@ -801,6 +778,8 @@ export function HanabiGameRoom() {
             })}
           </div>
 
+          <LanguageSelector />
+
           <button
             onClick={() => {
               disconnect();
@@ -808,7 +787,7 @@ export function HanabiGameRoom() {
             }}
             className="px-4 py-2 bg-red-950/40 hover:bg-red-900/80 border border-red-500/50 text-red-400 font-semibold text-xs uppercase tracking-wider rounded-lg transition-all"
           >
-            Sair da Sala
+            {t('common.exit_room')}
           </button>
         </div>
       </header>
@@ -820,11 +799,10 @@ export function HanabiGameRoom() {
           <div className="max-w-3xl mx-auto my-auto text-center space-y-6 w-full py-4">
             <div>
               <h2 className="text-3xl font-black text-purple-200 tracking-wide mb-1">
-                Sala de Preparação Pirotécnica
+                {t('hanabi.lobby_title')}
               </h2>
               <p className="text-gray-400 text-sm">
-                Necessário de <strong>2 a 5 jogadores</strong>. O líder configura a apresentação e
-                todos clicam em "Estou Pronto".
+                {t('hanabi.lobby_desc')}
               </p>
             </div>
 
@@ -832,11 +810,11 @@ export function HanabiGameRoom() {
             <div className="bg-black/50 border border-purple-900/40 rounded-2xl p-5 text-left shadow-2xl">
               <div className="flex justify-between items-center mb-3">
                 <span className="text-xs font-bold text-purple-300 uppercase tracking-widest">
-                  Variante de Regras & Cores
+                  {t('hanabi.rules_variants_title')}
                 </span>
                 {isLeader && (
                   <span className="text-[11px] text-amber-400 font-mono">
-                    ★ Você é o líder da sala
+                    {t('hanabi.leader_badge')}
                   </span>
                 )}
               </div>
@@ -858,18 +836,18 @@ export function HanabiGameRoom() {
                       <div className="flex items-center justify-between w-full mb-1">
                         <div className="flex items-center gap-2">
                           <span className="text-xl">{m.icon}</span>
-                          <span className="font-black text-sm text-white">{m.name}</span>
+                          <span className="font-black text-sm text-white">{t(`hanabi.modes.${m.id}.name`)}</span>
                         </div>
                         {isSelected && (
                           <span className="px-2 py-0.5 bg-purple-500 text-white font-black text-[10px] uppercase rounded-full">
-                            Ativo
+                            {t('hanabi.mode_active')}
                           </span>
                         )}
                       </div>
                       <span className="text-[11px] font-mono text-purple-300/80 mb-1">
-                        {m.subtitle}
+                        {t(`hanabi.modes.${m.id}.subtitle`)}
                       </span>
-                      <p className="text-xs text-gray-300 leading-relaxed">{m.desc}</p>
+                      <p className="text-xs text-gray-300 leading-relaxed">{t(`hanabi.modes.${m.id}.desc`)}</p>
                     </button>
                   );
                 })}
@@ -891,17 +869,16 @@ export function HanabiGameRoom() {
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-sm text-amber-200">
-                        Modificador: Show Perfeito (Tudo ou Nada)
+                        {t('hanabi.modifier_perfect_show_title')}
                       </span>
                       {gameState.perfectShow && (
                         <span className="px-2 py-0.2 bg-amber-500 text-black font-black text-[9px] uppercase rounded">
-                          Ativo
+                          {t('hanabi.mode_active')}
                         </span>
                       )}
                     </div>
                     <p className="text-xs text-gray-400 mt-0.5">
-                      O jogo não acaba por baralho vazio. O time continua até completar todos os
-                      foguetes ou perder se qualquer carta indispensável for descartada!
+                      {t('hanabi.modifier_perfect_show_desc')}
                     </p>
                   </div>
                 </div>
@@ -923,7 +900,7 @@ export function HanabiGameRoom() {
             {/* LISTA DE JOGADORES */}
             <div className="bg-black/40 border border-white/10 rounded-2xl p-5 text-left space-y-3 shadow-xl">
               <span className="text-xs font-bold text-purple-300 uppercase tracking-widest block mb-1">
-                Participantes ({gameState.players.length}/5)
+                {t('hanabi.participants_count', { current: gameState.players.length })}
               </span>
 
               {gameState.players.map((pid) => {
@@ -939,7 +916,7 @@ export function HanabiGameRoom() {
                     <div className="flex items-center gap-3">
                       <span className="w-2.5 h-2.5 rounded-full bg-green-400" />
                       <span className={`font-medium ${isMe ? 'text-green-400 font-bold' : 'text-purple-200'}`}>
-                        {pName} {isMe && '(Você)'}
+                        {pName} {isMe && t('common.you')}
                       </span>
                     </div>
 
@@ -953,7 +930,7 @@ export function HanabiGameRoom() {
                         }`}
                       >
                         <span>{isReady ? '✓' : '👍'}</span>
-                        <span>{isReady ? 'PRONTO! (Cancelar)' : 'ESTOU PRONTO'}</span>
+                        <span>{isReady ? t('hanabi.ready') : t('hanabi.not_ready')}</span>
                       </button>
                     ) : (
                       <span
@@ -963,7 +940,7 @@ export function HanabiGameRoom() {
                             : 'bg-amber-500/10 text-amber-300 border border-amber-500/20 animate-pulse'
                         }`}
                       >
-                        {isReady ? '✓ Pronto' : '⏳ Aguardando...'}
+                        {isReady ? t('hanabi.is_ready') : t('hanabi.waiting')}
                       </span>
                     )}
                   </div>
@@ -982,11 +959,11 @@ export function HanabiGameRoom() {
                   }
                   className="px-10 py-5 bg-gradient-to-r from-red-500 via-purple-600 to-blue-500 hover:opacity-90 border-2 border-purple-300 rounded-2xl font-black tracking-wider text-xl transition-all shadow-2xl disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  INICIAR APRESENTAÇÃO
+                  {t('hanabi.start_show')}
                 </button>
                 {gameState.players.length < 2 && (
                   <p className="text-xs text-amber-400 font-medium">
-                    Mínimo de 2 jogadores para iniciar.
+                    {t('hanabi.min_players_warn')}
                   </p>
                 )}
               </div>
@@ -1009,22 +986,22 @@ export function HanabiGameRoom() {
                   <span className="text-3xl animate-bounce">✨</span>
                   <div>
                     <h3 className="text-base font-black text-emerald-300 uppercase tracking-wider">
-                      SUA VEZ DE JOGAR!
+                      {t('hanabi.your_turn_banner')}
                     </h3>
                     <p className="text-xs text-emerald-100/90 font-medium">
-                      Escolha uma carta da sua mão abaixo para jogar/descartar, ou clique no botão <strong className="text-cyan-300">Dar Dica</strong> em um parceiro.
+                      {t('hanabi.your_turn_desc')}
                     </p>
                   </div>
                 </div>
                 <span className="px-3.5 py-1.5 bg-emerald-500 text-slate-950 font-black text-xs uppercase tracking-widest rounded-full shadow shrink-0 animate-pulse">
-                  Seu Turno
+                  {t('hanabi.your_turn_tag')}
                 </span>
               </motion.div>
             ) : (
               <div className="w-full max-w-4xl mx-auto p-3.5 rounded-2xl bg-black/60 border border-white/10 flex items-center justify-center gap-3 text-xs font-medium text-purple-200">
                 <span className="animate-spin text-sm">⏳</span>
                 <span>
-                  Turno de <strong className="text-amber-300 font-bold">{gameState.playerNames?.[gameState.currentPlayer] || 'Jogador'}</strong>. Aguardando a jogada do parceiro...
+                  {t('hanabi.waiting_teammate', { name: gameState.playerNames?.[gameState.currentPlayer] || t('common.player') })}
                 </span>
               </div>
             )}
@@ -1052,7 +1029,7 @@ export function HanabiGameRoom() {
                         </span>
                         {isCurrent && (
                           <span className="px-2 py-0.5 bg-amber-500 text-slate-950 text-[9px] font-black uppercase rounded-full tracking-wider animate-pulse">
-                            Vez
+                            {t('hanabi.turn_tag')}
                           </span>
                         )}
                       </div>
@@ -1065,12 +1042,12 @@ export function HanabiGameRoom() {
                           className="px-3.5 py-1.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white text-xs font-black uppercase tracking-wider rounded-xl shadow-[0_0_15px_rgba(6,182,212,0.4)] border border-cyan-300 flex items-center gap-1.5 active:scale-95"
                         >
                           <span>💡</span>
-                          <span>Dar Dica</span>
+                          <span>{t('hanabi.give_clue')}</span>
                         </motion.button>
                       ) : (
                         gameState.clockTokens === 0 && (
                           <span className="text-[10px] font-mono text-gray-500 uppercase">
-                            0 Dicas
+                            {t('hanabi.zero_clues')}
                           </span>
                         )
                       )}
@@ -1111,7 +1088,7 @@ export function HanabiGameRoom() {
                 {/* Fichas Azuis de Dica */}
                 <div className="flex items-center justify-between bg-blue-950/40 border border-blue-500/30 p-2.5 rounded-xl">
                   <span className="text-xs font-bold text-blue-300 uppercase tracking-wider">
-                    Dicas ({gameState.clockTokens}/8)
+                    {t('hanabi.clues_token', { current: gameState.clockTokens })}
                   </span>
                   <div className="flex gap-1">
                     {[...Array(8)].map((_, i) => (
@@ -1130,7 +1107,7 @@ export function HanabiGameRoom() {
                 {/* Fichas Pretas de Fusível (Erros) */}
                 <div className="flex items-center justify-between bg-red-950/40 border border-red-500/30 p-2.5 rounded-xl">
                   <span className="text-xs font-bold text-red-300 uppercase tracking-wider">
-                    Erros (Máx 3)
+                    {t('hanabi.errors_token')}
                   </span>
                   <div className="flex gap-1.5">
                     {[...Array(3)].map((_, i) => (
@@ -1152,7 +1129,7 @@ export function HanabiGameRoom() {
                 <div className="flex gap-2">
                   <div className="flex-1 bg-black/50 border border-white/10 p-2 rounded-xl text-center">
                     <span className="block text-[10px] text-gray-400 uppercase font-mono">
-                      Baralho
+                      {t('hanabi.deck')}
                     </span>
                     <span className="text-lg font-black text-purple-300">
                       {gameState.deckCount}
@@ -1163,7 +1140,7 @@ export function HanabiGameRoom() {
                     className="flex-1 bg-black/50 hover:bg-black/80 border border-white/10 hover:border-purple-400 p-2 rounded-xl text-center transition"
                   >
                     <span className="block text-[10px] text-gray-400 uppercase font-mono">
-                      Descarte
+                      {t('hanabi.discard')}
                     </span>
                     <span className="text-lg font-black text-amber-400">
                       {gameState.discardPile.length}
@@ -1198,7 +1175,7 @@ export function HanabiGameRoom() {
                             : 'text-white'
                         }`}
                       >
-                        {conf.short}
+                        {getColorShort(color, t)}
                       </span>
 
                       <div
@@ -1216,7 +1193,7 @@ export function HanabiGameRoom() {
                           isComplete ? 'text-amber-300 font-black' : 'text-white/70'
                         }`}
                       >
-                        {isComplete ? '⭐ COMPLETO' : `${value}/5`}
+                        {isComplete ? t('hanabi.firework_complete') : `${value}/5`}
                       </span>
                     </motion.div>
                   );
@@ -1226,7 +1203,7 @@ export function HanabiGameRoom() {
               {/* Feed de Ações Recentes */}
               <div className="bg-black/50 border border-white/10 p-3 rounded-xl max-w-xs w-full h-36 overflow-y-auto text-xs space-y-1.5 font-sans">
                 <span className="text-[10px] uppercase font-mono text-gray-400 tracking-wider block border-b border-white/5 pb-1">
-                  Histórico Pirotécnico
+                  {t('hanabi.pyrotechnic_log')}
                 </span>
                 {gameState.actionLog.slice(-5).map((log, idx) => (
                   <p key={idx} className="text-gray-300 leading-snug">
@@ -1246,10 +1223,10 @@ export function HanabiGameRoom() {
             >
               <div className="flex items-center gap-2">
                 <span className={`text-sm font-black uppercase tracking-wider ${isMyTurn ? 'text-emerald-300' : 'text-purple-200'}`}>
-                  {isMyTurn ? '✨ Sua Mão (Sua Vez!)' : 'Sua Mão'}
+                  {isMyTurn ? t('hanabi.my_hand_turn') : t('hanabi.my_hand')}
                 </span>
                 <span className="text-xs text-gray-400 italic">
-                  (Você não vê cor nem número, apenas as dicas anotadas)
+                  {t('hanabi.my_hand_note')}
                 </span>
               </div>
 
@@ -1298,14 +1275,14 @@ export function HanabiGameRoom() {
                   gameState.gameResult.win ? 'text-emerald-400' : 'text-red-500'
                 }`}
               >
-                {gameState.gameResult.win ? 'SHOW ESPETACULAR!' : 'O SHOW EXPLODIU!'}
+                {gameState.gameResult.win ? t('hanabi.game_over_win_title') : t('hanabi.game_over_loss_title')}
               </h2>
 
               <p className="text-gray-200 text-lg mb-6">{gameState.gameResult.message}</p>
 
               <div className="bg-black/60 p-4 rounded-2xl border border-white/10 mb-6 inline-block">
                 <span className="block text-xs uppercase text-gray-400 font-mono tracking-widest mb-1">
-                  Pontuação Final
+                  {t('hanabi.final_score')}
                 </span>
                 <span className="text-5xl font-black text-amber-400">
                   {gameState.gameResult.score} / {gameState.maxScore || 25}
@@ -1314,7 +1291,7 @@ export function HanabiGameRoom() {
 
               <div className="mb-8 p-4 bg-black/40 rounded-xl border border-white/5">
                 <span className="block text-[11px] text-purple-300 uppercase font-mono tracking-widest mb-1">
-                  Veredito da Liga dos Artesãos Pirotécnicos
+                  {t('hanabi.guild_verdict')}
                 </span>
                 <p className="text-base font-semibold text-gray-100 italic">
                   "{gameState.gameResult.rating}"
@@ -1325,7 +1302,7 @@ export function HanabiGameRoom() {
                 onClick={restartGame}
                 className="px-10 py-4 bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-500 hover:to-fuchsia-500 text-white font-black tracking-wider uppercase rounded-xl shadow-lg transition active:scale-95"
               >
-                Jogar Novamente
+                {t('hanabi.play_again')}
               </button>
             </motion.div>
           </div>
@@ -1337,7 +1314,7 @@ export function HanabiGameRoom() {
         <GiveClueModal
           isOpen={Boolean(clueModalTarget)}
           onClose={() => setClueModalTarget(null)}
-          targetPlayerName={gameState.playerNames?.[clueModalTarget] || 'Jogador'}
+          targetPlayerName={gameState.playerNames?.[clueModalTarget] || t('common.player')}
           targetCards={gameState.hands[clueModalTarget] || []}
           isWildMode={isWildMode}
           onConfirmClue={(type, val) => giveClue(clueModalTarget, type, val)}
