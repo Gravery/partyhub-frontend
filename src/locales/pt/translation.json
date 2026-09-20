@@ -63,7 +63,11 @@
     "cah_title": "CONTRA A HUMANIDADE",
     "cah_tag": "3-12 JOGADORES",
     "cah_desc": "O lendário jogo festivo politicamente incorreto! Complete as frases das cartas pretas com suas combinações brancas mais insanas e convença o Czar da rodada.",
-    "cah_create": "CRIAR SALA DE HUMANIDADE"
+    "cah_create": "CRIAR SALA DE HUMANIDADE",
+    "ludo_title": "LUDO",
+    "ludo_tag": "1-4 JOGADORES (BOTS)",
+    "ludo_desc": "O lendário jogo de tabuleiro! Role o dado, tire 6 para sair da base, capture peões adversários e conduza suas 4 peças até a vitória contra amigos ou bots.",
+    "ludo_create": "CRIAR SALA DE LUDO"
   },
   "profile": {
     "back_to_hub": "Voltar ao Hub",
@@ -309,5 +313,38 @@
     "champion_desc": "Atingiu a meta de {{points}} Pontos Incríveis e conquistou a mesa.",
     "final_scoreboard": "Classificação Final",
     "play_again": "Jogar Novamente"
+  },
+  "ludo": {
+    "game_title": "Ludo",
+    "lobby_title": "Lobby do Ludo",
+    "lobby_desc": "De 1 a 4 participantes. Vagas vazias são preenchidas por Bots automáticos para disputas competitivas e dinâmicas.",
+    "players_in_room": "Jogadores na Sala ({{current}}/4)",
+    "fill_bots_label": "Preencher Vagas Vazias com Bots",
+    "start_game": "INICIAR PARTIDA",
+    "waiting_leader": "Aguardando o Líder iniciar...",
+    "roll_dice": "ROLAR DADO",
+    "rolling": "Rolando...",
+    "your_turn": "⚡ SUA VEZ DE JOGAR!",
+    "player_turn": "⏳ Vez de {{name}}",
+    "rolled_value": "{{name}} tirou [{{val}}]",
+    "extra_turn_six": "Tirou 6! Jogue novamente!",
+    "extra_turn_capture": "⚔️ Peão capturado! Jogue novamente!",
+    "no_moves": "Sem movimentos possíveis para este dado",
+    "select_pawn": "Clique em um peão com brilho pulsante para mover",
+    "pawn_scored": "🎯 Peão na meta!",
+    "pawns_in_goal": "{{count}}/4 na meta",
+    "board_yard": "Garagem",
+    "board_home": "Meta",
+    "color_red": "Vermelho",
+    "color_green": "Verde",
+    "color_yellow": "Amarelo",
+    "color_blue": "Azul",
+    "champion_title": "GRANDE CAMPEÃO DO LUDO!",
+    "champion_desc": "Conduziu com maestria todos os seus 4 peões até o centro do tabuleiro!",
+    "final_scoreboard": "Classificação Final",
+    "play_again": "Jogar Novamente",
+    "action_log": "Histórico da Mesa",
+    "bot_tag": "BOT",
+    "you_tag": "(Você)"
   }
 }

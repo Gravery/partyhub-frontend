@@ -63,7 +63,11 @@
     "cah_title": "AGAINST HUMANITY",
     "cah_tag": "3-12 PLAYERS",
     "cah_desc": "The politically incorrect party game! Complete black card sentences with your most insane white card combinations and win over the Card Czar.",
-    "cah_create": "CREATE HUMANITY ROOM"
+    "cah_create": "CREATE HUMANITY ROOM",
+    "ludo_title": "LUDO",
+    "ludo_tag": "1-4 PLAYERS (BOTS)",
+    "ludo_desc": "The legendary classic board game! Roll the dice, get a 6 to leave the yard, capture opponent pawns and race all 4 tokens to victory against friends or bots.",
+    "ludo_create": "CREATE LUDO ROOM"
   },
   "profile": {
     "back_to_hub": "Back to Hub",
@@ -309,5 +313,38 @@
     "champion_desc": "Reached the goal of {{points}} points and conquered the table.",
     "final_scoreboard": "Final Standings",
     "play_again": "Play Again"
+  },
+  "ludo": {
+    "game_title": "Ludo",
+    "lobby_title": "Ludo Lobby",
+    "lobby_desc": "From 1 to 4 participants. Empty slots are filled with automated Bots for dynamic and competitive matches.",
+    "players_in_room": "Players in Room ({{current}}/4)",
+    "fill_bots_label": "Fill Empty Slots with Bots",
+    "start_game": "START MATCH",
+    "waiting_leader": "Waiting for Leader to start...",
+    "roll_dice": "ROLL DICE",
+    "rolling": "Rolling...",
+    "your_turn": "⚡ YOUR TURN TO PLAY!",
+    "player_turn": "⏳ {{name}}'s Turn",
+    "rolled_value": "{{name}} rolled [{{val}}]",
+    "extra_turn_six": "Rolled a 6! Roll again!",
+    "extra_turn_capture": "⚔️ Pawn captured! Roll again!",
+    "no_moves": "No valid moves for this roll",
+    "select_pawn": "Click a highlighted pawn to move",
+    "pawn_scored": "🎯 Pawn reached home!",
+    "pawns_in_goal": "{{count}}/4 in goal",
+    "board_yard": "Yard",
+    "board_home": "Goal",
+    "color_red": "Red",
+    "color_green": "Green",
+    "color_yellow": "Yellow",
+    "color_blue": "Blue",
+    "champion_title": "GRAND LUDO CHAMPION!",
+    "champion_desc": "Masterfully led all 4 pawns straight to the center goal!",
+    "final_scoreboard": "Final Standings",
+    "play_again": "Play Again",
+    "action_log": "Match Activity Log",
+    "bot_tag": "BOT",
+    "you_tag": "(You)"
   }
 }

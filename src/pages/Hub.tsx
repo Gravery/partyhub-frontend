@@ -12,6 +12,7 @@ export function Hub() {
   const [ittoCode, setIttoCode] = useState('');
   const [hanabiCode, setHanabiCode] = useState('');
   const [cahCode, setCahCode] = useState('');
+  const [ludoCode, setLudoCode] = useState('');
 
   const createIttoRoom = () => {
     const code = Math.random().toString(36).substring(2, 6).toUpperCase();
@@ -46,6 +47,18 @@ export function Hub() {
     e.preventDefault();
     if (cahCode.trim()) {
       navigate(`/game/cah/${cahCode.toUpperCase()}`);
+    }
+  };
+
+  const createLudoRoom = () => {
+    const code = Math.random().toString(36).substring(2, 6).toUpperCase();
+    navigate(`/game/ludo/${code}`);
+  };
+
+  const joinLudoRoom = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (ludoCode.trim()) {
+      navigate(`/game/ludo/${ludoCode.toUpperCase()}`);
     }
   };
 
@@ -88,7 +101,7 @@ export function Hub() {
         </div>
       </header>
 
-      <main className="relative z-10 max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      <main className="relative z-10 max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-6">
         
         {/* Card do Jogo 1: ITTO */}
         <motion.div 
@@ -269,6 +282,68 @@ export function Hub() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 className="px-6 bg-gray-800 hover:bg-white hover:text-black border-2 border-gray-700 hover:border-white rounded-xl font-black tracking-wider transition-all shadow-md text-sm cursor-pointer"
+              >
+                {t('hub.join_btn')}
+              </motion.button>
+            </form>
+          </div>
+        </motion.div>
+
+        {/* Card do Jogo 4: LUDO */}
+        <motion.div 
+          className="relative bg-black/40 backdrop-blur-xl rounded-3xl p-8 border-2 border-white/10 flex flex-col justify-between overflow-hidden shadow-2xl"
+          whileHover={{ y: -8, boxShadow: "0 20px 50px rgba(245,158,11,0.3)", borderColor: "rgba(245,158,11,0.5)" }}
+          transition={{ type: "spring", stiffness: 300, damping: 20 }}
+        >
+          <div className="absolute inset-0 opacity-10 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPjxyZWN0IHdpZHRoPSI0IiBoZWlnaHQ9IjQiIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSIvPjwvc3ZnPg==')] pointer-events-none mix-blend-overlay" />
+          
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-3xl font-black text-amber-300 tracking-wider">
+                {t('hub.ludo_title')}
+              </h2>
+              <span className="px-3 py-1 bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-full text-xs font-mono font-bold">
+                {t('hub.ludo_tag')}
+              </span>
+            </div>
+            <p className="text-gray-300 text-sm mb-8 leading-relaxed">
+              {t('hub.ludo_desc')}
+            </p>
+          </div>
+          
+          <div className="relative z-10 space-y-5">
+            <motion.button 
+              onClick={createLudoRoom} 
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.96 }}
+              className="w-full py-4 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black tracking-widest uppercase rounded-xl overflow-hidden group shadow-[0_0_20px_rgba(245,158,11,0.4)] border border-amber-300 relative transition-all cursor-pointer text-sm"
+            >
+              <span className="relative z-10">{t('hub.ludo_create')}</span>
+              <div className="absolute inset-0 h-full w-0 bg-white/20 transition-all duration-500 ease-out group-hover:w-full" />
+            </motion.button>
+            
+            <div className="relative flex items-center py-1">
+              <div className="flex-grow border-t border-amber-900/50" />
+              <span className="flex-shrink-0 mx-3 text-amber-400/60 font-bold font-mono text-[11px] uppercase tracking-widest">
+                {t('hub.or_enter_code')}
+              </span>
+              <div className="flex-grow border-t border-amber-900/50" />
+            </div>
+
+            <form onSubmit={joinLudoRoom} className="flex gap-2 relative group">
+              <input 
+                type="text" 
+                placeholder={t('hub.enter_code_placeholder')} 
+                maxLength={4}
+                value={ludoCode}
+                onChange={(e) => setLudoCode(e.target.value)}
+                className="w-full bg-black/80 border-2 border-amber-900/40 text-center uppercase text-xl font-black rounded-xl p-3.5 focus:outline-none focus:border-amber-400 transition-all placeholder:text-gray-700 font-mono text-amber-400"
+              />
+              <motion.button 
+                type="submit" 
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="px-6 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl font-black tracking-wider transition-all shadow-md text-sm cursor-pointer"
               >
                 {t('hub.join_btn')}
               </motion.button>

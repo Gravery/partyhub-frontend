@@ -8,6 +8,7 @@ import { Profile } from './pages/Profile';
 import { IttoGameRoom } from './pages/IttoGameRoom';
 import { HanabiGameRoom } from './pages/HanabiGameRoom';
 import { CahGameRoom } from './pages/CahGameRoom';
+import { LudoGameRoom } from './pages/LudoGameRoom';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
 // Despachador de jogos com base no slug da URL
@@ -19,6 +20,8 @@ function GameDispatcher() {
     roomComponent = <HanabiGameRoom />;
   } else if (gameSlug === 'cah' || gameSlug === 'cartas-contra-humanidade') {
     roomComponent = <CahGameRoom />;
+  } else if (gameSlug === 'ludo') {
+    roomComponent = <LudoGameRoom />;
   }
 
   return (
