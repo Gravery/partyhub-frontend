@@ -370,6 +370,7 @@ export function CahGameRoom() {
     setOptions,
     startGame,
     submitAnswer,
+    discardCards,
     revealSubmission,
     selectWinner,
     nextRound,
@@ -379,12 +380,15 @@ export function CahGameRoom() {
 
   const [copied, setCopied] = useState(false);
   const [selectedCardIds, setSelectedCardIds] = useState<string[]>([]);
+  const [isDiscardMode, setIsDiscardMode] = useState<boolean>(false);
+  const [selectedDiscardIds, setSelectedDiscardIds] = useState<string[]>([]);
   const [hoveredCardText, setHoveredCardText] = useState<string | null>(null);
   const [czarSelectedSubId, setCzarSelectedSubId] = useState<string | null>(null);
   const [czarHoveredTexts, setCzarHoveredTexts] = useState<string[] | null>(null);
   const [showWinnerModal, setShowWinnerModal] = useState<boolean>(true);
 
   const requiredPick = gameState?.currentBlackCard?.pick || 1;
+  const discardsRemaining = gameState?.discardsRemaining !== undefined ? gameState.discardsRemaining : 2;
 
   const handleCopyInvite = () => {
     if (navigator.clipboard) {
@@ -406,6 +410,8 @@ export function CahGameRoom() {
   // Limpa seleção local quando o estado avança para outra rodada e reabre o modal de vencedor
   useEffect(() => {
     setSelectedCardIds([]);
+    setIsDiscardMode(false);
+    setSelectedDiscardIds([]);
     setHoveredCardText(null);
     setCzarSelectedSubId(null);
     setCzarHoveredTexts(null);
@@ -426,6 +432,17 @@ export function CahGameRoom() {
   }, [roundWinnerToast]);
 
   const handleCardClick = (cardId: string) => {
+    if (isDiscardMode) {
+      if (selectedDiscardIds.includes(cardId)) {
+        setSelectedDiscardIds(selectedDiscardIds.filter((id) => id !== cardId));
+      } else {
+        if (selectedDiscardIds.length < discardsRemaining) {
+          setSelectedDiscardIds([...selectedDiscardIds, cardId]);
+        }
+      }
+      return;
+    }
+
     if (selectedCardIds.includes(cardId)) {
       setSelectedCardIds(selectedCardIds.filter((id) => id !== cardId));
       return;
@@ -1184,7 +1201,7 @@ export function CahGameRoom() {
             {/* BASE: MÃO DE CARTAS BRANCAS DO JOGADOR (NA FASE DE SELEÇÃO) */}
             {gameState.state === 'SELECTING_ANSWERS' && (
               <div className="flex flex-col items-center gap-4 mt-auto">
-                <div className="flex justify-between items-center w-full max-w-5xl px-4">
+                <div className="flex flex-wrap justify-between items-center w-full max-w-5xl px-4 gap-3">
                   <div className="flex items-center gap-3">
                     <span className="text-sm font-black uppercase tracking-wider text-gray-200">
                       {t('cah.your_hand')}
@@ -1192,6 +1209,13 @@ export function CahGameRoom() {
                     {isCzar ? (
                       <span className="text-xs text-amber-400 font-bold italic">
                         {t('cah.czar_no_play')}
+                      </span>
+                    ) : isDiscardMode ? (
+                      <span className="text-xs px-3 py-1 bg-rose-950/70 border border-rose-500/50 rounded-full font-mono font-bold text-rose-300 animate-pulse">
+                        🗑️ {t('cah.discard_mode_active', {
+                          count: discardsRemaining,
+                          selected: selectedDiscardIds.length,
+                        })}
                       </span>
                     ) : (
                       <span className="text-xs px-2.5 py-1 bg-white/10 rounded-full font-mono font-bold text-amber-300 border border-white/10">
@@ -1206,17 +1230,71 @@ export function CahGameRoom() {
                     )}
                   </div>
 
-                  {!isCzar && !gameState.hasSubmitted && selectedCardIds.length === requiredPick && (
-                    <motion.button
-                      initial={{ scale: 0.9, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      onClick={() => submitAnswer(selectedCardIds)}
-                      className="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-500 hover:to-fuchsia-500 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-xl transition active:scale-95 cursor-pointer"
-                    >
-                      {requiredPick > 1
-                        ? t('cah.confirm_multi_answers', { count: requiredPick })
-                        : t('cah.confirm_answer')}
-                    </motion.button>
+                  {!isCzar && !gameState.hasSubmitted && (
+                    <div className="flex items-center gap-2">
+                      {/* Controles de Descarte */}
+                      {isDiscardMode ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsDiscardMode(false);
+                              setSelectedDiscardIds([]);
+                            }}
+                            className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition cursor-pointer"
+                          >
+                            {t('common.cancel', 'Cancelar')}
+                          </button>
+                          <motion.button
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            disabled={selectedDiscardIds.length === 0}
+                            onClick={() => {
+                              discardCards(selectedDiscardIds);
+                              setIsDiscardMode(false);
+                              setSelectedDiscardIds([]);
+                            }}
+                            className={`px-5 py-2 font-black text-xs uppercase tracking-wider rounded-xl shadow-xl transition cursor-pointer ${
+                              selectedDiscardIds.length > 0
+                                ? 'bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white active:scale-95'
+                                : 'bg-gray-800 text-gray-500 cursor-not-allowed'
+                            }`}
+                          >
+                            🗑️ {t('cah.confirm_discard', { count: selectedDiscardIds.length })}
+                          </motion.button>
+                        </>
+                      ) : (
+                        <>
+                          {discardsRemaining > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsDiscardMode(true);
+                                setSelectedDiscardIds([]);
+                                setSelectedCardIds([]);
+                              }}
+                              className="px-3.5 py-1.5 bg-slate-800/80 hover:bg-slate-700/80 border border-white/20 hover:border-amber-400 text-gray-300 hover:text-white font-bold text-xs uppercase tracking-wider rounded-xl transition cursor-pointer flex items-center gap-1.5"
+                            >
+                              <span>🔄</span>
+                              <span>{t('cah.cycle_hand_btn', { remaining: discardsRemaining })}</span>
+                            </button>
+                          )}
+
+                          {selectedCardIds.length === requiredPick && (
+                            <motion.button
+                              initial={{ scale: 0.9, opacity: 0 }}
+                              animate={{ scale: 1, opacity: 1 }}
+                              onClick={() => submitAnswer(selectedCardIds)}
+                              className="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-500 hover:to-fuchsia-500 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-xl transition active:scale-95 cursor-pointer"
+                            >
+                              {requiredPick > 1
+                                ? t('cah.confirm_multi_answers', { count: requiredPick })
+                                : t('cah.confirm_answer')}
+                            </motion.button>
+                          )}
+                        </>
+                      )}
+                    </div>
                   )}
                 </div>
 
@@ -1224,13 +1302,22 @@ export function CahGameRoom() {
                 <div className="w-full overflow-x-auto pb-4 pt-2">
                   <div className="flex gap-3 justify-start md:justify-center min-w-max px-4">
                     {myHand.map((card) => {
-                      const selIndex = selectedCardIds.indexOf(card.id);
-                      const isSelected = selIndex !== -1;
-                      const badge = isSelected
-                        ? requiredPick > 1
-                          ? `[${selIndex + 1}] ${selIndex + 1}ª`
-                          : '✓'
-                        : null;
+                      let isSelected = false;
+                      let badge: string | number | null = null;
+
+                      if (isDiscardMode) {
+                        isSelected = selectedDiscardIds.includes(card.id);
+                        badge = isSelected ? '🗑️ Trocar' : null;
+                      } else {
+                        const selIndex = selectedCardIds.indexOf(card.id);
+                        isSelected = selIndex !== -1;
+                        badge = isSelected
+                          ? requiredPick > 1
+                            ? `[${selIndex + 1}] ${selIndex + 1}ª`
+                            : '✓'
+                          : null;
+                      }
+
                       const disabled = isCzar || gameState.hasSubmitted;
 
                       return (

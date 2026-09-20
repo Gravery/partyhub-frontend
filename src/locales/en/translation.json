@@ -312,7 +312,10 @@
     "champion_title": "SUPREME COMEDY CHAMPION!",
     "champion_desc": "Reached the goal of {{points}} points and conquered the table.",
     "final_scoreboard": "Final Standings",
-    "play_again": "Play Again"
+    "play_again": "Play Again",
+    "cycle_hand_btn": "🔄 Cycle ({{remaining}} left)",
+    "discard_mode_active": "Discard Mode: Select up to {{count}} cards to swap ({{selected}} selected)",
+    "confirm_discard": "Discard and Draw ({{count}})"
   },
   "ludo": {
     "game_title": "Ludo",
@@ -341,6 +344,11 @@
     "color_blue": "Blue",
     "champion_title": "GRAND LUDO CHAMPION!",
     "champion_desc": "Masterfully led all 4 pawns straight to the center goal!",
+    "first_place_title": "1st Place Achieved!",
+    "podium_choice_desc": "All 4 pawns reached home! What would you like to do now?",
+    "continue_match": "Continue Match (2nd & 3rd Place)",
+    "finish_match": "End Match Now",
+    "waiting_leader_podium": "Waiting for the room leader to choose whether to end or continue...",
     "final_scoreboard": "Final Standings",
     "play_again": "Play Again",
     "action_log": "Match Activity Log",

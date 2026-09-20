@@ -66,6 +66,7 @@ export interface CahState {
   revealedSubmissionsCount?: number;
   roundWinner?: RoundWinnerInfo | null;
   actionLog: string[];
+  discardsRemaining?: number;
 }
 
 export interface CahDisconnectNotice {
@@ -92,6 +93,7 @@ interface CahStore {
   setOptions: (scoreToWin: number) => void;
   startGame: () => void;
   submitAnswer: (cardIds: string | string[]) => void;
+  discardCards: (cardIds: string[]) => void;
   revealSubmission: (submissionId: string) => void;
   selectWinner: (submissionOrCardId: string) => void;
   nextRound: () => void;
@@ -329,6 +331,10 @@ export const useCahStore = create<CahStore>((set, get) => ({
     } else {
       get().sendMessage('SUBMIT_ANSWER', { cardIds: [cardIds], cardId: cardIds });
     }
+  },
+
+  discardCards: (cardIds) => {
+    get().sendMessage('DISCARD_CARDS', { cardIds });
   },
 
   revealSubmission: (submissionId) => {

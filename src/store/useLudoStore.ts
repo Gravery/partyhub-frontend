@@ -47,7 +47,7 @@ export interface LastMoveInfo {
 }
 
 export interface LudoGameState {
-  state: 'LOBBY' | 'WAITING_ROLL' | 'WAITING_MOVE' | 'GAME_OVER';
+  state: 'LOBBY' | 'WAITING_ROLL' | 'WAITING_MOVE' | 'PODIUM_CHOICE' | 'GAME_OVER';
   players: LudoPlayer[];
   activePlayerIndex: number;
   activePlayerId: string;
@@ -198,6 +198,8 @@ interface LudoStore {
   startGame: () => void;
   rollDice: () => void;
   movePawn: (pawnIndex: number) => void;
+  finishMatch: () => void;
+  continueMatch: () => void;
   restartGame: () => void;
   toggleSound: () => void;
   clearError: () => void;
@@ -412,6 +414,14 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
 
   movePawn: (pawnIndex: number) => {
     get().sendMessage('MOVE_PAWN', { pawnIndex });
+  },
+
+  finishMatch: () => {
+    get().sendMessage('FINISH_MATCH');
+  },
+
+  continueMatch: () => {
+    get().sendMessage('CONTINUE_MATCH');
   },
 
   restartGame: () => {

@@ -153,6 +153,8 @@ export function LudoGameRoom() {
     startGame,
     rollDice,
     movePawn,
+    finishMatch,
+    continueMatch,
     restartGame,
     toggleSound,
     clearError,
@@ -183,18 +185,9 @@ export function LudoGameRoom() {
 
     // Caso 1: Saída da Garagem (fromStep === -1, toStep === 0)
     if (lm.fromStep === -1) {
-      setAnimatedSteps((prev) => ({ ...prev, [pawnKey]: 0 }));
       ludoAudio.playPawnHop();
-
-      const clearTimer = setTimeout(() => {
-        setAnimatedSteps((prev) => {
-          const next = { ...prev };
-          delete next[pawnKey];
-          return next;
-        });
-      }, 300);
-
-      return () => clearTimeout(clearTimer);
+      // O Framer Motion interpola suavemente a transição das coordenadas da garagem para a saída
+      return;
     }
 
     // Caso 2: Movimento no circuito ou reta final (passo a passo fluido)
@@ -260,6 +253,12 @@ export function LudoGameRoom() {
       return () => {
         clearInterval(interval);
         clearTimeout(watchdog);
+        setAnimatedSteps((prev) => {
+          if (prev[pawnKey] === undefined) return prev;
+          const next = { ...prev };
+          delete next[pawnKey];
+          return next;
+        });
       };
     }
   }, [gameState?.lastMove, gameState?.players]);
@@ -295,15 +294,18 @@ export function LudoGameRoom() {
   gameState.players.forEach((p) => {
     p.pawns.forEach((pawn) => {
       const pawnKey = `${p.id}_${pawn.id}`;
-      const currentStep =
-        animatedSteps[pawnKey] !== undefined ? animatedSteps[pawnKey] : pawn.step;
+      const isCurrentlyWalking =
+        !!(gameState.lastMove &&
+        `${gameState.lastMove.playerId}_${gameState.lastMove.pawnIndex}` === pawnKey &&
+        animatedSteps[pawnKey] !== undefined);
+      const currentStep = isCurrentlyWalking ? animatedSteps[pawnKey] : pawn.step;
       const pos = getPawnPosition(p.color, pawn.id, currentStep);
       pawnPositions.push({
         player: p,
         pawn,
         pos,
         pawnKey,
-        isWalking: animatedSteps[pawnKey] !== undefined,
+        isWalking: isCurrentlyWalking,
         isReturning: !!returningPawns[pawnKey],
       });
     });
@@ -718,7 +720,7 @@ export function LudoGameRoom() {
 
               {/* 3. RENDERIZAÇÃO DOS 16 PEÕES COM IDENTIDADE PERSISTENTE E TRANSIÇÃO SUAVE (NUNCA TELEPORTA) */}
               <div className="absolute inset-2.5 md:inset-3.5 pointer-events-none z-20">
-                {pawnPositions.map(({ pawn, pos, pawnKey, isWalking, isReturning }) => {
+                {pawnPositions.map(({ player: pawnOwner, pawn, pos, pawnKey, isWalking, isReturning }) => {
                   const coordKey = `${pos.row}_${pos.col}`;
                   const countInCoord = pawnsPerCoord[coordKey] || 1;
                   const idxInCoord = coordCounter[coordKey] || 0;
@@ -743,8 +745,10 @@ export function LudoGameRoom() {
                   const topPct = (pos.row / 15) * 100;
                   const leftPct = (pos.col / 15) * 100;
 
+                  const isMyPawn = activePlayer && (pawnOwner.id === myId);
                   const canMoveThisPawn =
                     isMyTurn &&
+                    isMyPawn &&
                     gameState.state === 'WAITING_MOVE' &&
                     gameState.validMoves.includes(pawn.id);
 
@@ -931,7 +935,58 @@ export function LudoGameRoom() {
           </div>
         )}
 
-        {/* FASE C: MODAL DE VITÓRIA / FIM DE JOGO */}
+        {/* FASE C: MODAL DE ESCOLHA DE PÓDIO (APÓS 1º LUGAR) */}
+        <AnimatePresence>
+          {gameState.state === 'PODIUM_CHOICE' && gameState.winner && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.85 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.85 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md"
+            >
+              <div className="max-w-md w-full bg-slate-950 border-2 border-amber-400 rounded-3xl p-6 md:p-8 shadow-[0_0_60px_rgba(251,191,36,0.5)] text-center flex flex-col items-center gap-4">
+                <div className="text-6xl animate-bounce">🥇</div>
+                <h2 className="text-2xl md:text-3xl font-black text-amber-400 uppercase tracking-widest">
+                  {t('ludo.first_place_title', '1º Lugar Conquistado!')}
+                </h2>
+                <div
+                  className={`px-4 py-2 rounded-2xl font-black text-lg text-slate-950 ${
+                    COLOR_CONFIG[gameState.winner.color as LudoColor]?.bg || 'bg-amber-400'
+                  }`}
+                >
+                  👑 {gameState.winner.username}
+                </div>
+                <p className="text-xs md:text-sm text-gray-300">
+                  {t('ludo.podium_choice_desc', 'Todos os 4 peões cruzaram a meta! O que desejam fazer agora?')}
+                </p>
+
+                {isLeader ? (
+                  <div className="w-full flex flex-col gap-3 pt-3 border-t border-white/10">
+                    <button
+                      onClick={continueMatch}
+                      className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl transition cursor-pointer shadow-lg shadow-emerald-500/30"
+                    >
+                      ⚔️ {t('ludo.continue_match', 'Continuar Disputa (2º e 3º Lugar)')}
+                    </button>
+                    <button
+                      onClick={finishMatch}
+                      className="w-full py-3 bg-white/10 hover:bg-white/20 text-white font-black text-xs uppercase tracking-wider rounded-xl transition cursor-pointer"
+                    >
+                      🏆 {t('ludo.finish_match', 'Encerrar Partida Agora')}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="w-full p-4 rounded-xl bg-amber-950/40 border border-amber-500/30 text-amber-300 text-xs flex items-center justify-center gap-2">
+                    <div className="animate-spin text-sm">⏳</div>
+                    <span>{t('ludo.waiting_leader_podium', 'Aguardando o líder da sala decidir se encerra ou continua a disputa...')}</span>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* FASE D: MODAL DE VITÓRIA / PÓDIO FINAL */}
         <AnimatePresence>
           {gameState.state === 'GAME_OVER' && gameState.winner && (
             <motion.div
@@ -945,16 +1000,41 @@ export function LudoGameRoom() {
                 <h2 className="text-3xl font-black text-amber-400 uppercase tracking-widest">
                   {t('ludo.champion_title')}
                 </h2>
-                <div
-                  className={`px-4 py-2 rounded-2xl font-black text-lg text-slate-950 ${
-                    COLOR_CONFIG[gameState.winner.color as LudoColor]?.bg || 'bg-amber-400'
-                  }`}
-                >
-                  {gameState.winner.username}
+
+                {/* Lista Completa do Pódio */}
+                <div className="w-full space-y-2 text-left my-1">
+                  {(gameState.rankings && gameState.rankings.length > 0
+                    ? gameState.rankings
+                    : [gameState.winner]
+                  ).map((p, idx) => {
+                    const cfg = COLOR_CONFIG[p.color as LudoColor] || COLOR_CONFIG.RED;
+                    const medals = ['🥇', '🥈', '🥉', '🎖️'];
+                    const medal = medals[idx] || `${idx + 1}º`;
+                    const isMe = p.id === myId;
+
+                    return (
+                      <div
+                        key={p.id}
+                        className={`flex items-center justify-between p-2.5 rounded-xl border ${
+                          idx === 0
+                            ? 'bg-amber-950/40 border-amber-400/50'
+                            : 'bg-black/40 border-white/10 text-gray-300'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 truncate">
+                          <span className="text-lg">{medal}</span>
+                          <div className={`w-3 h-3 rounded-full ${cfg.bg}`} />
+                          <span className="text-xs font-bold truncate">
+                            {p.username} {isMe && t('ludo.you_tag')}
+                          </span>
+                        </div>
+                        <span className="text-[11px] font-mono font-bold text-gray-400">
+                          {p.score}/4 🎯
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
-                <p className="text-xs md:text-sm text-gray-300">
-                  {t('ludo.champion_desc')}
-                </p>
 
                 <div className="w-full flex gap-3 pt-3 border-t border-white/10">
                   <button

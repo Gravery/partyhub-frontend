@@ -312,7 +312,10 @@
     "champion_title": "GRANDE CAMPEÃO DA COMÉDIA!",
     "champion_desc": "Atingiu a meta de {{points}} Pontos Incríveis e conquistou a mesa.",
     "final_scoreboard": "Classificação Final",
-    "play_again": "Jogar Novamente"
+    "play_again": "Jogar Novamente",
+    "cycle_hand_btn": "🔄 Ciclar ({{remaining}} restantes)",
+    "discard_mode_active": "Modo Descarte: Selecione até {{count}} cartas para trocar ({{selected}} selecionadas)",
+    "confirm_discard": "Descartar e Comprar Novas ({{count}})"
   },
   "ludo": {
     "game_title": "Ludo",
@@ -341,6 +344,11 @@
     "color_blue": "Azul",
     "champion_title": "GRANDE CAMPEÃO DO LUDO!",
     "champion_desc": "Conduziu com maestria todos os seus 4 peões até o centro do tabuleiro!",
+    "first_place_title": "1º Lugar Conquistado!",
+    "podium_choice_desc": "Todos os 4 peões cruzaram a meta! O que desejam fazer agora?",
+    "continue_match": "Continuar Disputa (2º e 3º Lugar)",
+    "finish_match": "Encerrar Partida Agora",
+    "waiting_leader_podium": "Aguardando o líder da sala decidir se encerra ou continua a disputa...",
     "final_scoreboard": "Classificação Final",
     "play_again": "Jogar Novamente",
     "action_log": "Histórico da Mesa",
