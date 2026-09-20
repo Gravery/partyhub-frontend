@@ -29,6 +29,7 @@ export interface LudoPlayer {
 }
 
 export interface LastMoveInfo {
+  moveId: number;
   playerId: string;
   playerName: string;
   color: LudoColor;
@@ -39,6 +40,9 @@ export interface LastMoveInfo {
   captured: boolean;
   capturedBy?: string;
   capturedPawn?: string;
+  capturedColor?: LudoColor;
+  capturedPawnIndex?: number;
+  capturedFromStep?: number;
   isExtraTurn: boolean;
 }
 

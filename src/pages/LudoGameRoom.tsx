@@ -5,11 +5,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   useLudoStore,
   type LudoColor,
-  type LudoPlayer,
-  type LudoPawn,
   ludoAudio,
 } from '../store/useLudoStore';
-import { getPawnPosition } from '../lib/ludoBoard';
+import { getPawnPosition, type Position } from '../lib/ludoBoard';
 import { useAuthStore } from '../store/useAuthStore';
 import { LanguageSelector } from '../components/LanguageSelector';
 
@@ -170,67 +168,101 @@ export function LudoGameRoom() {
     };
   }, [roomId, session, connect, disconnect]);
 
-  // Animação passo a passo do peão andando casa por casa
-  const [walkingPawn, setWalkingPawn] = useState<{
-    playerId: string;
-    pawnId: number;
-    color: LudoColor;
-    step: number;
-  } | null>(null);
-
-  const lastMoveKeyRef = useRef<string>('');
+  // Estados de controle de animações passo a passo e de retorno na captura
+  const [animatedSteps, setAnimatedSteps] = useState<Record<string, number>>({});
+  const [returningPawns, setReturningPawns] = useState<Record<string, boolean>>({});
+  const lastHandledMoveIdRef = useRef<number>(0);
 
   useEffect(() => {
     const lm = gameState?.lastMove;
-    if (!lm) return;
-    const moveKey = `${lm.playerId}_${lm.pawnIndex}_${lm.fromStep}_${lm.toStep}_${lm.dice}`;
-    if (lastMoveKeyRef.current === moveKey) return;
-    lastMoveKeyRef.current = moveKey;
+    if (!lm || !lm.moveId) return;
+    if (lastHandledMoveIdRef.current >= lm.moveId) return;
+    lastHandledMoveIdRef.current = lm.moveId;
 
-    if (lm.fromStep === lm.toStep) return;
+    const pawnKey = `${lm.playerId}_${lm.pawnIndex}`;
 
-    // Se saiu da garagem (fromStep === -1, toStep === 0)
+    // Caso 1: Saída da Garagem (fromStep === -1, toStep === 0)
     if (lm.fromStep === -1) {
-      setWalkingPawn({
-        playerId: lm.playerId,
-        pawnId: lm.pawnIndex,
-        color: lm.color,
-        step: 0,
-      });
+      setAnimatedSteps((prev) => ({ ...prev, [pawnKey]: 0 }));
       ludoAudio.playPawnHop();
-      const timer = setTimeout(() => {
-        setWalkingPawn(null);
+
+      const clearTimer = setTimeout(() => {
+        setAnimatedSteps((prev) => {
+          const next = { ...prev };
+          delete next[pawnKey];
+          return next;
+        });
       }, 300);
-      return () => clearTimeout(timer);
+
+      return () => clearTimeout(clearTimer);
     }
 
-    // Se andou no tabuleiro (passo a passo de fromStep até toStep)
-    let current = lm.fromStep;
-    const target = lm.toStep;
+    // Caso 2: Movimento no circuito ou reta final (passo a passo fluido)
+    if (lm.fromStep >= 0 && lm.toStep > lm.fromStep) {
+      let current = lm.fromStep;
+      const target = lm.toStep;
 
-    const interval = setInterval(() => {
-      current++;
-      ludoAudio.playPawnHop();
-      setWalkingPawn({
-        playerId: lm.playerId,
-        pawnId: lm.pawnIndex,
-        color: lm.color,
-        step: current,
-      });
+      const interval = setInterval(() => {
+        current++;
+        ludoAudio.playPawnHop();
+        setAnimatedSteps((prev) => ({ ...prev, [pawnKey]: current }));
 
-      if (current >= target) {
-        clearInterval(interval);
-        setTimeout(() => {
-          setWalkingPawn(null);
+        if (current >= target) {
+          clearInterval(interval);
+
+          // Se houve captura, anima o peão capturado voando de volta à base
+          if (
+            lm.captured &&
+            lm.capturedColor !== undefined &&
+            lm.capturedPawnIndex !== undefined &&
+            lm.capturedPawnIndex >= 0
+          ) {
+            const victim = gameState.players.find((p) => p.color === lm.capturedColor);
+            if (victim) {
+              const victimKey = `${victim.id}_${lm.capturedPawnIndex}`;
+              setReturningPawns((prev) => ({ ...prev, [victimKey]: true }));
+              ludoAudio.playCapture();
+
+              setTimeout(() => {
+                setReturningPawns((prev) => {
+                  const next = { ...prev };
+                  delete next[victimKey];
+                  return next;
+                });
+              }, 600);
+            }
+          }
+
           if (target === 56) {
             ludoAudio.playGoal();
           }
-        }, 180);
-      }
-    }, 140);
 
-    return () => clearInterval(interval);
-  }, [gameState?.lastMove]);
+          setTimeout(() => {
+            setAnimatedSteps((prev) => {
+              const next = { ...prev };
+              delete next[pawnKey];
+              return next;
+            });
+          }, 150);
+        }
+      }, 130);
+
+      // Watchdog de segurança: garante que o peão NUNCA fique congelado caso o ciclo seja interrompido
+      const watchdog = setTimeout(() => {
+        clearInterval(interval);
+        setAnimatedSteps((prev) => {
+          const next = { ...prev };
+          delete next[pawnKey];
+          return next;
+        });
+      }, (target - lm.fromStep + 2) * 150 + 600);
+
+      return () => {
+        clearInterval(interval);
+        clearTimeout(watchdog);
+      };
+    }
+  }, [gameState?.lastMove, gameState?.players]);
 
   if (!gameState) {
     return (
@@ -250,29 +282,102 @@ export function LudoGameRoom() {
   const canRoll = isMyTurn && gameState.state === 'WAITING_ROLL';
   const isWaitingMove = isMyTurn && gameState.state === 'WAITING_MOVE';
 
-  // Agrupa peões por coordenada (Row, Col) para renderizar múltiplos peões na mesma casa
-  const pawnsByCoord: Record<string, { pawn: LudoPawn; player: LudoPlayer }[]> = {};
+  // Mapeamento de todos os peões com cálculo de coordenadas (Row, Col) e offsets em caso de sobreposição
+  const pawnPositions: {
+    player: typeof gameState.players[0];
+    pawn: typeof gameState.players[0]['pawns'][0];
+    pos: Position;
+    pawnKey: string;
+    isWalking: boolean;
+    isReturning: boolean;
+  }[] = [];
+
   gameState.players.forEach((p) => {
     p.pawns.forEach((pawn) => {
-      let pos = pawn.position;
-      if (
-        walkingPawn &&
-        walkingPawn.playerId === p.id &&
-        walkingPawn.pawnId === pawn.id
-      ) {
-        pos = getPawnPosition(p.color, pawn.id, walkingPawn.step);
-      }
-      const key = `${pos.row}_${pos.col}`;
-      if (!pawnsByCoord[key]) {
-        pawnsByCoord[key] = [];
-      }
-      pawnsByCoord[key].push({ pawn, player: p });
+      const pawnKey = `${p.id}_${pawn.id}`;
+      const currentStep =
+        animatedSteps[pawnKey] !== undefined ? animatedSteps[pawnKey] : pawn.step;
+      const pos = getPawnPosition(p.color, pawn.id, currentStep);
+      pawnPositions.push({
+        player: p,
+        pawn,
+        pos,
+        pawnKey,
+        isWalking: animatedSteps[pawnKey] !== undefined,
+        isReturning: !!returningPawns[pawnKey],
+      });
     });
   });
 
+  // Contagem de peões por casa para badges de agrupamento e pequeno deslocamento visual
+  const pawnsPerCoord: Record<string, number> = {};
+  pawnPositions.forEach(({ pos }) => {
+    const key = `${pos.row}_${pos.col}`;
+    pawnsPerCoord[key] = (pawnsPerCoord[key] || 0) + 1;
+  });
+
+  const coordCounter: Record<string, number> = {};
+
   return (
-    <div className="min-h-screen bg-slate-950 text-white flex flex-col justify-between p-3 md:p-6 overflow-x-hidden font-sans select-none">
-      {/* 1. TOPO / CABEÇALHO */}
+    <div className="min-h-screen bg-slate-950 text-white flex flex-col justify-between p-3 md:p-6 overflow-x-hidden font-sans select-none relative">
+      {/* OVERLAY FLUTUANTE FIXO PARA NOTIFICAÇÕES (ZERO DESLOCAMENTO DE TELA / SEM LAYOUT SHIFT) */}
+      <div className="fixed top-16 md:top-20 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-2 pointer-events-none w-full max-w-md px-4">
+        {/* Banner de Turno Extra (Rolou 6 ou Capturou) */}
+        <AnimatePresence>
+          {extraTurnBanner && (
+            <motion.div
+              initial={{ opacity: 0, y: -20, scale: 0.85 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -20, scale: 0.85 }}
+              className="px-6 py-2 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 text-slate-950 font-black text-xs md:text-sm tracking-widest uppercase rounded-full shadow-[0_10px_35px_rgba(251,191,36,0.8)] border-2 border-white pointer-events-auto flex items-center justify-center gap-2 animate-bounce"
+            >
+              <span>{extraTurnBanner}</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Toast de Captura */}
+        <AnimatePresence>
+          {toastMessage && (
+            <motion.div
+              initial={{ opacity: 0, y: -20, scale: 0.85 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -20, scale: 0.85 }}
+              className="px-5 py-2.5 bg-gradient-to-r from-red-600 to-rose-700 text-white font-bold text-xs md:text-sm rounded-2xl shadow-[0_10px_35px_rgba(239,68,68,0.8)] border-2 border-red-300 pointer-events-auto flex items-center justify-between gap-4 w-full"
+            >
+              <span>{toastMessage}</span>
+              <button
+                onClick={clearToast}
+                className="px-2 py-0.5 rounded-lg bg-black/30 hover:bg-black/50 text-white text-xs cursor-pointer font-mono"
+              >
+                &times;
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Banner de Erro */}
+        <AnimatePresence>
+          {errorMsg && (
+            <motion.div
+              initial={{ opacity: 0, y: -20, scale: 0.85 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -20, scale: 0.85 }}
+              className="px-4 py-2 bg-rose-950/90 border border-rose-500 rounded-xl text-rose-200 text-xs pointer-events-auto flex justify-between items-center gap-3 w-full shadow-lg"
+            >
+              <span>⚠️ {errorMsg}</span>
+              <button
+                onClick={clearError}
+                className="text-xs font-bold px-2 py-0.5 rounded bg-rose-500/30 hover:bg-rose-500/50 cursor-pointer"
+              >
+                &times;
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* 1. CABEÇALHO */}
       <header className="flex flex-col md:flex-row justify-between items-center gap-3 border-b border-white/10 pb-4">
         <div className="flex items-center gap-4">
           <button
@@ -325,60 +430,6 @@ export function LudoGameRoom() {
           </div>
         </div>
       </header>
-
-      {/* Banner de Erro */}
-      <AnimatePresence>
-        {errorMsg && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="my-3 px-4 py-2 bg-rose-950/80 border border-rose-500 rounded-xl text-rose-200 text-xs flex justify-between items-center"
-          >
-            <span>⚠️ {errorMsg}</span>
-            <button
-              onClick={clearError}
-              className="text-xs font-bold px-2 py-0.5 rounded bg-rose-500/30 hover:bg-rose-500/50"
-            >
-              &times;
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Banner de Captura / Notificação Flutuante */}
-      <AnimatePresence>
-        {toastMessage && (
-          <motion.div
-            initial={{ opacity: 0, y: -20, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 0.9 }}
-            className="my-2 px-5 py-2.5 bg-gradient-to-r from-red-600 to-rose-700 text-white font-bold text-xs md:text-sm rounded-2xl shadow-[0_0_30px_rgba(239,68,68,0.7)] border-2 border-red-300 flex items-center justify-between gap-4 z-40 max-w-lg mx-auto"
-          >
-            <span>{toastMessage}</span>
-            <button
-              onClick={clearToast}
-              className="px-2 py-0.5 rounded-lg bg-black/30 hover:bg-black/50 text-white text-xs cursor-pointer font-mono"
-            >
-              &times;
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Banner de Turno Extra (Rolou 6 ou Capturou) */}
-      <AnimatePresence>
-        {extraTurnBanner && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8, y: -10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.8, y: -10 }}
-            className="my-2 px-6 py-2 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 text-slate-950 font-black text-xs md:text-sm tracking-widest uppercase rounded-full shadow-[0_0_35px_rgba(251,191,36,0.8)] border-2 border-white flex items-center justify-center gap-2 animate-bounce z-40 max-w-md mx-auto"
-          >
-            <span>{extraTurnBanner}</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* 2. CONTEÚDO PRINCIPAL */}
       <main className="flex-grow flex flex-col items-center justify-center my-4 gap-6">
@@ -665,88 +716,106 @@ export function LudoGameRoom() {
                 )}
               </div>
 
-              {/* 3. RENDERIZAÇÃO DOS PEÕES EM CAMADA SOBREPOSTA */}
+              {/* 3. RENDERIZAÇÃO DOS 16 PEÕES COM IDENTIDADE PERSISTENTE E TRANSIÇÃO SUAVE (NUNCA TELEPORTA) */}
               <div className="absolute inset-2.5 md:inset-3.5 pointer-events-none z-20">
-                {Object.entries(pawnsByCoord).map(([coordKey, pawnList]) => {
-                  const [rowStr, colStr] = coordKey.split('_');
-                  const row = parseInt(rowStr, 10);
-                  const col = parseInt(colStr, 10);
+                {pawnPositions.map(({ pawn, pos, pawnKey, isWalking, isReturning }) => {
+                  const coordKey = `${pos.row}_${pos.col}`;
+                  const countInCoord = pawnsPerCoord[coordKey] || 1;
+                  const idxInCoord = coordCounter[coordKey] || 0;
+                  coordCounter[coordKey] = idxInCoord + 1;
 
-                  const topPct = (row / 15) * 100;
-                  const leftPct = (col / 15) * 100;
-                  const count = pawnList.length;
+                  // Se houver mais de 1 peão fora da garagem na mesma casa, aplica uma leve separação espacial
+                  let offsetX = 0;
+                  let offsetY = 0;
+                  if (!pawn.inYard && countInCoord > 1) {
+                    if (countInCoord === 2) {
+                      offsetX = idxInCoord === 0 ? -3 : 3;
+                      offsetY = idxInCoord === 0 ? -3 : 3;
+                    } else if (countInCoord === 3) {
+                      offsetX = idxInCoord === 0 ? -4 : idxInCoord === 1 ? 4 : 0;
+                      offsetY = idxInCoord === 2 ? 4 : -3;
+                    } else {
+                      offsetX = (idxInCoord % 2 === 0 ? -4 : 4);
+                      offsetY = (idxInCoord < 2 ? -4 : 4);
+                    }
+                  }
+
+                  const topPct = (pos.row / 15) * 100;
+                  const leftPct = (pos.col / 15) * 100;
+
+                  const canMoveThisPawn =
+                    isMyTurn &&
+                    gameState.state === 'WAITING_MOVE' &&
+                    gameState.validMoves.includes(pawn.id);
+
+                  const cfg = COLOR_CONFIG[pawn.color];
 
                   return (
-                    <div
-                      key={coordKey}
-                      style={{
+                    <motion.div
+                      key={pawnKey}
+                      initial={false}
+                      animate={{
                         top: `${topPct}%`,
                         left: `${leftPct}%`,
+                        x: offsetX,
+                        y: offsetY,
+                        scale: isReturning ? [1.3, 0.7, 1] : isWalking ? 1.25 : 1,
+                        rotate: isReturning ? [0, 360] : 0,
+                        zIndex: isWalking || isReturning ? 40 : canMoveThisPawn ? 30 : 20 + idxInCoord,
+                      }}
+                      transition={
+                        isReturning
+                          ? { duration: 0.55, ease: [0.34, 1.56, 0.64, 1] }
+                          : { duration: 0.14, ease: 'easeInOut' }
+                      }
+                      style={{
                         width: '6.666%',
                         height: '6.666%',
                       }}
-                      className="absolute flex items-center justify-center pointer-events-auto transition-all duration-100 ease-out"
+                      className="absolute flex items-center justify-center pointer-events-auto"
                     >
-                      {pawnList.map(({ pawn, player: pawnOwner }, idx) => {
-                        const canMoveThisPawn =
-                          isMyTurn &&
-                          gameState.state === 'WAITING_MOVE' &&
-                          gameState.validMoves.includes(pawn.id);
-
-                        const cfg = COLOR_CONFIG[pawn.color];
-                        const isWalking =
-                          walkingPawn &&
-                          walkingPawn.playerId === pawnOwner.id &&
-                          walkingPawn.pawnId === pawn.id;
-
-                        return (
-                          <motion.button
-                            key={`${pawn.color}_${pawn.id}`}
-                            type="button"
-                            disabled={!canMoveThisPawn}
-                            onClick={() => {
-                              if (canMoveThisPawn) {
-                                movePawn(pawn.id);
+                      <motion.button
+                        type="button"
+                        disabled={!canMoveThisPawn}
+                        onClick={() => {
+                          if (canMoveThisPawn) {
+                            movePawn(pawn.id);
+                          }
+                        }}
+                        whileHover={canMoveThisPawn ? { scale: 1.4, zIndex: 50 } : {}}
+                        animate={
+                          canMoveThisPawn
+                            ? {
+                                scale: [1, 1.25, 1],
+                                y: [0, -4, 0],
                               }
-                            }}
-                            whileHover={canMoveThisPawn ? { scale: 1.4, zIndex: 30 } : {}}
-                            animate={
-                              isWalking
-                                ? { scale: [1, 1.35, 1], y: [0, -6, 0] }
-                                : canMoveThisPawn
-                                ? {
-                                    scale: [1, 1.25, 1],
-                                    y: [0, -4, 0],
-                                  }
-                                : { scale: 1, y: 0 }
-                            }
-                            transition={{
-                              duration: isWalking ? 0.14 : 0.5,
-                              repeat: canMoveThisPawn && !isWalking ? Infinity : 0,
-                              repeatDelay: 0.2,
-                            }}
-                            className={`relative rounded-full flex items-center justify-center border-2 transition-all ${
-                              count > 1 ? 'w-4 h-4 md:w-5 md:h-5' : 'w-5 h-5 md:w-7 md:h-7'
-                            } ${cfg.bg} ${cfg.border} ${
-                              canMoveThisPawn
-                                ? 'shadow-[0_0_20px_rgba(255,255,255,0.9)] border-white cursor-pointer z-30 animate-pulse'
-                                : 'shadow-md cursor-default'
-                            }`}
-                          >
-                            <span className="text-[9px] md:text-[10px] font-black text-slate-950 font-mono">
-                              {pawn.id + 1}
-                            </span>
+                            : { scale: 1, y: 0 }
+                        }
+                        transition={{
+                          duration: 0.5,
+                          repeat: canMoveThisPawn ? Infinity : 0,
+                          repeatDelay: 0.2,
+                        }}
+                        className={`relative rounded-full flex items-center justify-center border-2 transition-shadow ${
+                          pawn.inYard ? 'w-6 h-6 md:w-8 md:h-8' : 'w-5 h-5 md:w-7 md:h-7'
+                        } ${cfg.bg} ${cfg.border} ${
+                          canMoveThisPawn
+                            ? 'shadow-[0_0_20px_rgba(255,255,255,0.95)] border-white cursor-pointer animate-pulse'
+                            : 'shadow-md cursor-default'
+                        }`}
+                      >
+                        <span className="text-[9px] md:text-[11px] font-black text-slate-950 font-mono">
+                          {pawn.id + 1}
+                        </span>
 
-                            {/* Badge de agrupamento caso haja mais de 1 peão na mesma casa */}
-                            {idx === 0 && count > 1 && (
-                              <span className="absolute -top-2 -right-2 bg-slate-950 text-white font-mono font-bold text-[8px] px-1 rounded-full border border-white/40 shadow">
-                                x{count}
-                              </span>
-                            )}
-                          </motion.button>
-                        );
-                      })}
-                    </div>
+                        {/* Badge de agrupamento caso haja mais de 1 peão na mesma casa */}
+                        {idxInCoord === 0 && countInCoord > 1 && !pawn.inYard && (
+                          <span className="absolute -top-2 -right-2 bg-slate-950 text-white font-mono font-bold text-[8px] px-1 rounded-full border border-white/40 shadow">
+                            x{countInCoord}
+                          </span>
+                        )}
+                      </motion.button>
+                    </motion.div>
                   );
                 })}
               </div>
