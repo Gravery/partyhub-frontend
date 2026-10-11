@@ -6,11 +6,11 @@ import { useWavelengthStore } from '../store/useWavelengthStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { LanguageSelector } from '../components/LanguageSelector';
 
-// Utilitários para geometria do mostrador (arco semicircular)
+// Geometria do mostrador (arco semicircular)
 const CX = 250;
-const CY = 240;
-const R_OUTER = 210;
-const R_INNER = 135;
+const CY = 245;
+const R_OUTER = 205;
+const R_INNER = 130;
 
 function pctToRad(pct: number): number {
   const clamped = Math.max(0, Math.min(100, pct));
@@ -70,6 +70,8 @@ export function WavelengthGameRoom() {
 
   const [clueInput, setClueInput] = useState('');
   const [isDraggingDial, setIsDraggingDial] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
   const svgRef = useRef<SVGSVGElement | null>(null);
 
   useEffect(() => {
@@ -81,27 +83,42 @@ export function WavelengthGameRoom() {
     };
   }, [roomId, token]);
 
-  // Função para converter clique/drag no SVG para porcentagem do dial (0 a 100)
+  // Cópia de código e link da sala
+  const handleCopyCode = () => {
+    if (!roomId) return;
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(roomId);
+      setCopiedCode(true);
+      setTimeout(() => setCopiedCode(false), 2000);
+    }
+  };
+
+  const handleCopyLink = () => {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(window.location.href);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2000);
+    }
+  };
+
+  // Conversão de ponteiro (mouse/touch) para porcentagem do dial (0 a 100)
   const handlePointerInteraction = useCallback(
     (e: React.PointerEvent<SVGSVGElement> | PointerEvent) => {
       if (!svgRef.current || !gameState) return;
       if (gameState.state !== 'GUESSING_PHASE' || gameState.isPsychic) return;
 
       const rect = svgRef.current.getBoundingClientRect();
-      // Posição normalizada no viewBox (500x270)
       const scaleX = 500 / rect.width;
-      const scaleY = 270 / rect.height;
+      const scaleY = 280 / rect.height;
 
       const x = (e.clientX - rect.left) * scaleX - CX;
-      const y = CY - (e.clientY - rect.top) * scaleY; // Inverte Y para trigonometria
+      const y = CY - (e.clientY - rect.top) * scaleY;
 
-      // Calcula o ângulo em radianos (de 0 a PI)
       let rad = Math.atan2(y, x);
       if (rad < 0) {
         rad = x < 0 ? Math.PI : 0;
       }
 
-      // Converte radiano para porcentagem: rad = PI*(1 - pct/100) => pct = (1 - rad/PI)*100
       let pct = (1 - rad / Math.PI) * 100;
       pct = Math.max(0, Math.min(100, Math.round(pct * 10) / 10));
 
@@ -146,7 +163,7 @@ export function WavelengthGameRoom() {
     setClueInput('');
   };
 
-  // Ajuste fino do Dial (+/- passos)
+  // Ajuste fino do dial (+/- passos)
   const adjustDial = (delta: number) => {
     if (!gameState || gameState.state !== 'GUESSING_PHASE' || gameState.isPsychic) return;
     const current = gameState.dialValue;
@@ -154,7 +171,7 @@ export function WavelengthGameRoom() {
     updateDial(next);
   };
 
-  // Avaliação do desempenho final no Game Over
+  // Avaliação do desempenho no Game Over
   const getScoreRating = (score: number) => {
     if (score >= 22) {
       return {
@@ -220,13 +237,18 @@ export function WavelengthGameRoom() {
   const showTargetWedge = gameState.isTargetVisible && target !== null;
   const dial = gameState.dialValue;
   const needleRad = pctToRad(dial);
-  const needleTip = polarToCartesian(R_OUTER + 15, needleRad);
+  const needleTip = polarToCartesian(R_OUTER + 16, needleRad);
+
+  // Status de prontidão do lobby
+  const totalPlayers = gameState.players.length;
+  const readyCount = gameState.players.filter((p) => gameState.playerReady[p]).length;
+  const allPlayersReady = totalPlayers >= 2 && readyCount === totalPlayers;
 
   return (
-    <div className="relative min-h-screen bg-[#020617] text-white p-4 md:p-8 font-sans overflow-x-hidden bg-grid-pattern flex flex-col justify-between select-none">
+    <div className="relative min-h-screen bg-[#020617] text-white p-4 md:p-8 font-sans overflow-x-hidden bg-grid-pattern flex flex-col justify-between">
       <div className="crt-overlay" />
 
-      {/* Luz ambiente cyberpunk de fundo */}
+      {/* Luz ambiente cyberpunk */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-4/5 h-[450px] bg-gradient-to-b from-cyan-600/15 via-purple-600/10 to-transparent blur-[140px] rounded-full pointer-events-none" />
 
       {/* Alerta de Erro */}
@@ -262,9 +284,27 @@ export function WavelengthGameRoom() {
             <h1 className="text-2xl md:text-3xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-sky-300 to-indigo-400">
               WAVELENGTH
             </h1>
-            <span className="text-[11px] font-mono text-cyan-400/80 tracking-widest uppercase">
-              {t('wavelength.room_code', 'SALA')}: <strong className="text-white font-black">{roomId}</strong>
-            </span>
+            {/* Pill do Código da Sala com Cópia Direta */}
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className="text-[11px] font-mono text-cyan-400/80 tracking-widest uppercase">
+                {t('wavelength.room_code', 'SALA')}:
+              </span>
+              <button
+                onClick={handleCopyCode}
+                title={t('wavelength.copy_code_btn', 'Copiar Código')}
+                className="select-text px-2 py-0.5 bg-black/60 hover:bg-cyan-950/60 border border-cyan-500/40 rounded-lg text-white font-mono font-black text-xs tracking-wider transition-all cursor-pointer flex items-center gap-1.5 active:scale-95"
+              >
+                <span>{roomId}</span>
+                <span className="text-[10px] text-cyan-400">{copiedCode ? '✓' : '📋'}</span>
+              </button>
+              <button
+                onClick={handleCopyLink}
+                title={t('wavelength.copy_link_btn', 'Copiar Link')}
+                className="px-2 py-0.5 bg-white/5 hover:bg-white/15 border border-white/10 rounded-lg text-[10px] font-mono font-bold text-gray-300 transition-all cursor-pointer"
+              >
+                {copiedLink ? '✓ ' + t('wavelength.copied_link', 'Link Copiado!') : '🔗 ' + t('wavelength.copy_link_btn', 'Link')}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -312,25 +352,53 @@ export function WavelengthGameRoom() {
       <main className="relative z-10 max-w-6xl mx-auto w-full my-6 flex flex-col items-center">
         {/* FASE 1: LOBBY */}
         {gameState.state === 'LOBBY' && (
-          <div className="w-full max-w-2xl bg-black/60 backdrop-blur-2xl border-2 border-white/10 rounded-3xl p-8 shadow-2xl flex flex-col items-center text-center">
+          <div className="w-full max-w-2xl bg-black/60 backdrop-blur-2xl border-2 border-white/10 rounded-3xl p-6 md:p-8 shadow-2xl flex flex-col items-center text-center">
             <div className="w-20 h-20 rounded-3xl bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center text-3xl shadow-[0_0_30px_rgba(6,182,212,0.4)] mb-6">
               🔮
             </div>
             <h2 className="text-3xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-indigo-300 uppercase mb-2">
               {t('wavelength.lobby_title', 'Sintonize a Sua Equipe')}
             </h2>
-            <p className="text-gray-400 text-sm max-w-md mb-8 leading-relaxed">
+            <p className="text-gray-400 text-sm max-w-md mb-6 leading-relaxed">
               {t(
                 'wavelength.lobby_desc',
                 'O Médium vê um alvo secreto em um espectro conceitual e transmite uma dica telepática. A equipe debate e calibra o ponteiro na frequência exata!'
               )}
             </p>
 
-            {/* Lista de Jogadores Conectados */}
+            {/* Banner de Compartilhamento da Sala */}
+            <div className="w-full mb-6 p-4 rounded-2xl bg-white/5 border border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="text-left">
+                <span className="text-[10px] font-mono uppercase tracking-widest text-cyan-400 block">
+                  {t('wavelength.room_code', 'CÓDIGO DE ENTRADA')}
+                </span>
+                <span className="select-text text-2xl font-black font-mono tracking-widest text-white">
+                  {roomId}
+                </span>
+              </div>
+              <div className="flex gap-2 w-full sm:w-auto">
+                <button
+                  onClick={handleCopyCode}
+                  className="flex-1 sm:flex-none px-4 py-2 bg-cyan-600/30 hover:bg-cyan-600/50 border border-cyan-400/50 rounded-xl text-xs font-mono font-bold text-cyan-200 transition-all cursor-pointer"
+                >
+                  {copiedCode ? '✓ ' + t('wavelength.copied_code', 'Copiado!') : '📋 ' + t('wavelength.copy_code_btn', 'Copiar Código')}
+                </button>
+                <button
+                  onClick={handleCopyLink}
+                  className="flex-1 sm:flex-none px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl text-xs font-mono font-bold text-white transition-all cursor-pointer"
+                >
+                  {copiedLink ? '✓ ' + t('wavelength.copied_link', 'Link Copiado!') : '🔗 ' + t('wavelength.copy_link_btn', 'Copiar Link')}
+                </button>
+              </div>
+            </div>
+
+            {/* Lista de Jogadores Conectados com Status de Prontidão */}
             <div className="w-full space-y-3 mb-8">
               <div className="text-xs font-mono text-cyan-400/80 uppercase tracking-widest mb-2 flex justify-between px-2">
                 <span>{t('wavelength.connected_players', 'Jogadores na Sala')} ({gameState.players.length})</span>
-                <span>{t('wavelength.min_players', 'Mínimo: 2 Jogadores')}</span>
+                <span className={allPlayersReady ? 'text-emerald-400 font-bold' : 'text-amber-400'}>
+                  {readyCount}/{totalPlayers} {t('wavelength.ready_btn', 'Prontos')}
+                </span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {gameState.players.map((pid) => {
@@ -371,7 +439,7 @@ export function WavelengthGameRoom() {
                               : 'bg-white/10 text-gray-400'
                           }`}
                         >
-                          {isReady ? '✓ PRONTO' : '...'}
+                          {isReady ? '✓ PRONTO' : 'AGUARDANDO'}
                         </span>
                       </div>
                     </div>
@@ -380,7 +448,7 @@ export function WavelengthGameRoom() {
               </div>
             </div>
 
-            {/* Ações do Lobby */}
+            {/* Ações do Lobby com Bloqueio de Início se nem todos estiverem prontos */}
             <div className="w-full flex flex-col sm:flex-row gap-4">
               <button
                 onClick={toggleReady}
@@ -398,14 +466,22 @@ export function WavelengthGameRoom() {
               {isLeader && (
                 <button
                   onClick={startGame}
-                  disabled={gameState.players.length < 2}
+                  disabled={!allPlayersReady}
                   className={`flex-1 py-4 font-black tracking-widest uppercase rounded-2xl border transition-all text-sm ${
-                    gameState.players.length >= 2
-                      ? 'bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white border-cyan-300 shadow-[0_0_25px_rgba(6,182,212,0.4)] cursor-pointer'
-                      : 'bg-gray-800 text-gray-500 border-gray-700 cursor-not-allowed'
+                    allPlayersReady
+                      ? 'bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white border-cyan-300 shadow-[0_0_25px_rgba(6,182,212,0.5)] cursor-pointer animate-pulse'
+                      : 'bg-gray-900 text-gray-500 border-gray-800 cursor-not-allowed opacity-80'
                   }`}
                 >
-                  {t('wavelength.start_game_btn', 'Iniciar Partida')}
+                  {totalPlayers < 2
+                    ? t('wavelength.waiting_min_players', 'Mínimo de 2 Jogadores')
+                    : !allPlayersReady
+                    ? t('wavelength.waiting_players_ready', {
+                        ready: readyCount,
+                        total: totalPlayers,
+                        defaultValue: `Aguardando Prontos (${readyCount}/${totalPlayers})`,
+                      })
+                    : t('wavelength.start_game_btn', 'Iniciar Partida 🚀')}
                 </button>
               )}
             </div>
@@ -433,7 +509,7 @@ export function WavelengthGameRoom() {
                   </span>
                   <span
                     className={`font-black text-sm uppercase tracking-wider ${
-                      isPsychic ? 'text-amber-300 neon-text-amber' : 'text-cyan-300 neon-text-cyan'
+                      isPsychic ? 'text-amber-300' : 'text-cyan-300'
                     }`}
                   >
                     {isPsychic
@@ -455,85 +531,120 @@ export function WavelengthGameRoom() {
               )}
             </div>
 
-            {/* CARTAS DO ESPECTRO CONCEITUAL (EXTREMO ESQUERDO & DIREITO) */}
-            <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
-              {/* Extremo Esquerdo (0%) */}
-              <div className="relative p-5 rounded-2xl bg-gradient-to-br from-cyan-950/60 to-black/60 border-2 border-cyan-500/40 shadow-[0_0_25px_rgba(6,182,212,0.15)] flex flex-col justify-between">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="px-2.5 py-0.5 bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 rounded-full text-[10px] font-mono font-black tracking-widest uppercase">
-                    &larr; {t('wavelength.extreme_left', 'EXTREMO ESQUERDO')} (0%)
-                  </span>
-                  {gameState.currentTheme.category && (
-                    <span className="text-[10px] font-mono text-cyan-400/60 uppercase">
-                      {gameState.currentTheme.category}
+            {/* CARTAS DO ESPECTRO CONCEITUAL (EXTREMO ESQUERDO 0% ↔ PONTO MÉDIO 50% ↔ EXTREMO DIREITO 100%) */}
+            <div className="w-full max-w-4xl flex flex-col space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
+                {/* Extremo Esquerdo (0%) */}
+                <div className="relative p-5 rounded-2xl bg-gradient-to-br from-cyan-950/70 to-black/70 border-2 border-cyan-500/50 shadow-[0_0_25px_rgba(6,182,212,0.15)] flex flex-col justify-between">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="px-3 py-1 bg-cyan-500/20 text-cyan-300 border border-cyan-500/50 rounded-full text-xs font-mono font-black tracking-widest uppercase">
+                      0% • {t('wavelength.extreme_left', 'EXTREMO ESQUERDO')}
                     </span>
-                  )}
+                    {gameState.currentTheme.category && (
+                      <span className="text-[11px] font-mono text-cyan-400/60 uppercase">
+                        {gameState.currentTheme.category}
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="text-2xl md:text-3xl font-black text-cyan-100 tracking-wide mt-2">
+                    {gameState.currentTheme.left}
+                  </h3>
                 </div>
-                <h3 className="text-xl md:text-2xl font-black text-cyan-100 tracking-wide mt-2">
-                  {gameState.currentTheme.left}
-                </h3>
+
+                {/* Extremo Direito (100%) */}
+                <div className="relative p-5 rounded-2xl bg-gradient-to-bl from-indigo-950/70 to-black/70 border-2 border-indigo-500/50 shadow-[0_0_25px_rgba(99,102,241,0.15)] flex flex-col justify-between text-right">
+                  <div className="flex items-center justify-between mb-2">
+                    {gameState.currentTheme.category && (
+                      <span className="text-[11px] font-mono text-indigo-400/60 uppercase">
+                        {gameState.currentTheme.category}
+                      </span>
+                    )}
+                    <span className="px-3 py-1 bg-indigo-500/20 text-indigo-300 border border-indigo-500/50 rounded-full text-xs font-mono font-black tracking-widest uppercase">
+                      {t('wavelength.extreme_right', 'EXTREMO DIREITO')} • 100%
+                    </span>
+                  </div>
+                  <h3 className="text-2xl md:text-3xl font-black text-indigo-100 tracking-wide mt-2">
+                    {gameState.currentTheme.right}
+                  </h3>
+                </div>
               </div>
 
-              {/* Extremo Direito (100%) */}
-              <div className="relative p-5 rounded-2xl bg-gradient-to-bl from-indigo-950/60 to-black/60 border-2 border-indigo-500/40 shadow-[0_0_25px_rgba(99,102,241,0.15)] flex flex-col justify-between text-right">
-                <div className="flex items-center justify-between mb-2">
-                  {gameState.currentTheme.category && (
-                    <span className="text-[10px] font-mono text-indigo-400/60 uppercase">
-                      {gameState.currentTheme.category}
-                    </span>
-                  )}
-                  <span className="px-2.5 py-0.5 bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 rounded-full text-[10px] font-mono font-black tracking-widest uppercase">
-                    {t('wavelength.extreme_right', 'EXTREMO DIREITO')} (100%) &rarr;
-                  </span>
-                </div>
-                <h3 className="text-xl md:text-2xl font-black text-indigo-100 tracking-wide mt-2">
-                  {gameState.currentTheme.right}
-                </h3>
+              {/* Barra de Conexão Central com Marcador de Ponto Médio (50%) */}
+              <div className="w-full px-4 py-2 bg-black/40 border border-white/10 rounded-xl flex items-center justify-between text-[11px] font-mono text-gray-400">
+                <span className="text-cyan-400 font-bold">0% {gameState.currentTheme.left}</span>
+                <span className="px-2.5 py-0.5 bg-white/10 text-white rounded-md font-bold tracking-wider">
+                  50% • {t('wavelength.middle_neutral', 'Ponto Médio')}
+                </span>
+                <span className="text-indigo-400 font-bold">{gameState.currentTheme.right} 100%</span>
               </div>
             </div>
 
-            {/* MOSTRADOR ANALÓGICO / DIAL SEMICIRCULAR */}
-            <div className="relative w-full max-w-2xl bg-black/60 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 shadow-2xl flex flex-col items-center">
+            {/* GUIA DIRECIONAL PARA O MÉDIUM (PSYCHIC_PHASE) */}
+            {gameState.state === 'PSYCHIC_PHASE' && isPsychic && target !== null && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="w-full max-w-2xl p-4 rounded-2xl bg-gradient-to-r from-amber-950/50 via-yellow-950/30 to-amber-950/50 border border-amber-500/50 shadow-[0_0_20px_rgba(245,158,11,0.2)] text-center space-y-1"
+              >
+                <div className="text-xs font-mono text-amber-300 font-black uppercase tracking-wider">
+                  {t('wavelength.psychic_target_guide', { target: target.toFixed(1) })}
+                </div>
+                <div className="text-sm font-bold text-amber-100">
+                  {target < 40
+                    ? t('wavelength.psychic_hint_left', { concept: gameState.currentTheme.left })
+                    : target > 60
+                    ? t('wavelength.psychic_hint_right', { concept: gameState.currentTheme.right })
+                    : t('wavelength.psychic_hint_mid', '⚖️ Ponto de equilíbrio neutro (50%)')}
+                </div>
+                <p className="text-xs text-amber-200/70 font-mono">
+                  {t('wavelength.psychic_tip', '💡 Pense em algo que fique exatamente nesta proporção entre os dois extremos!')}
+                </p>
+              </motion.div>
+            )}
+
+            {/* MOSTRADOR ANALÓGICO / DIAL COM RÓTULOS DE % E AGULHA TÁTIL */}
+            <div className="relative w-full max-w-2xl bg-black/60 backdrop-blur-2xl border border-white/10 rounded-3xl p-5 md:p-6 shadow-2xl flex flex-col items-center">
               {/* SVG do Dial */}
-              <div className="relative w-full max-w-[500px] aspect-[500/270] flex items-center justify-center">
+              <div className="relative w-full max-w-[500px] aspect-[500/280] flex items-center justify-center">
                 <svg
                   ref={svgRef}
-                  viewBox="0 0 500 270"
-                  className={`w-full h-full overflow-visible ${
+                  viewBox="0 0 500 280"
+                  style={{ touchAction: 'none' }}
+                  className={`w-full h-full overflow-visible select-none ${
                     gameState.state === 'GUESSING_PHASE' && !isPsychic ? 'cursor-grab active:cursor-grabbing' : ''
                   }`}
                   onPointerDown={handlePointerDown}
                 >
                   <defs>
-                    {/* Gradiente da Pista */}
                     <linearGradient id="spectrumGradient" x1="0%" y1="0%" x2="100%" y2="0%">
                       <stop offset="0%" stopColor="#06b6d4" />
                       <stop offset="50%" stopColor="#818cf8" />
                       <stop offset="100%" stopColor="#ec4899" />
                     </linearGradient>
 
-                    {/* Sombra da Agulha */}
                     <filter id="needleGlow" x="-50%" y="-50%" width="200%" height="200%">
-                      <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="#ef4444" floodOpacity="0.8" />
+                      <feDropShadow dx="0" dy="0" stdDeviation="5" floodColor="#ef4444" floodOpacity="0.8" />
                     </filter>
                     <filter id="bullseyeGlow" x="-50%" y="-50%" width="200%" height="200%">
                       <feDropShadow dx="0" dy="0" stdDeviation="6" floodColor="#eab308" floodOpacity="0.9" />
                     </filter>
                   </defs>
 
-                  {/* Arco de fundo (trilho do dial) */}
+                  {/* Arco de fundo (trilho do espectro) */}
                   <path
                     d={makeArcSector(0, 100, R_INNER, R_OUTER)}
                     fill="url(#spectrumGradient)"
-                    opacity="0.3"
+                    opacity="0.25"
                   />
 
-                  {/* Marcas de graduação em passos de 10% */}
-                  {Array.from({ length: 11 }).map((_, i) => {
-                    const stepPct = i * 10;
+                  {/* Marcas de graduação em passos de 10% com maiores em 0%, 25%, 50%, 75%, 100% */}
+                  {Array.from({ length: 21 }).map((_, i) => {
+                    const stepPct = i * 5;
                     const r = pctToRad(stepPct);
+                    const isMajor = stepPct % 25 === 0;
+                    const isMid = stepPct % 10 === 0;
                     const p1 = polarToCartesian(R_OUTER + 2, r);
-                    const p2 = polarToCartesian(R_OUTER + 8, r);
+                    const p2 = polarToCartesian(R_OUTER + (isMajor ? 12 : isMid ? 8 : 4), r);
                     return (
                       <line
                         key={i}
@@ -541,15 +652,35 @@ export function WavelengthGameRoom() {
                         y1={p1.y}
                         x2={p2.x}
                         y2={p2.y}
-                        stroke="rgba(255,255,255,0.4)"
-                        strokeWidth={i === 5 ? 3 : 1.5}
+                        stroke={isMajor ? '#ffffff' : 'rgba(255,255,255,0.4)'}
+                        strokeWidth={isMajor ? 2.5 : isMid ? 1.5 : 1}
                       />
+                    );
+                  })}
+
+                  {/* Rótulos de Porcentagem ao Redor do Arco */}
+                  {[0, 25, 50, 75, 100].map((labelPct) => {
+                    const r = pctToRad(labelPct);
+                    const textPos = polarToCartesian(R_OUTER + 24, r);
+                    return (
+                      <text
+                        key={labelPct}
+                        x={textPos.x}
+                        y={textPos.y + 4}
+                        textAnchor="middle"
+                        fill="rgba(255,255,255,0.7)"
+                        fontSize="11"
+                        fontWeight="800"
+                        fontFamily="monospace"
+                      >
+                        {labelPct}%
+                      </text>
                     );
                   })}
 
                   {/* FATIA DO ALVO SECRETO (Visível para o Médium ou durante REVELAÇÃO) */}
                   {showTargetWedge && (
-                    <g className="transition-opacity duration-700 ease-out">
+                    <g className="transition-all duration-700 ease-out">
                       {/* Faixa Externa: 2 Pontos (±12.5% a ±7.5%) */}
                       <path
                         d={makeArcSector(target - 12.5, target - 7.5, R_INNER, R_OUTER)}
@@ -605,7 +736,7 @@ export function WavelengthGameRoom() {
                   {!showTargetWedge && (
                     <path
                       d={makeArcSector(0, 100, R_INNER + 2, R_OUTER - 2)}
-                      fill="#090d16"
+                      fill="#070b14"
                       stroke="rgba(255,255,255,0.15)"
                       strokeWidth="2"
                     />
@@ -624,8 +755,15 @@ export function WavelengthGameRoom() {
                       strokeLinecap="round"
                     />
 
-                    {/* Seta na ponta da agulha */}
-                    <circle cx={needleTip.x} cy={needleTip.y} r="6" fill="#ef4444" stroke="#ffffff" strokeWidth="2" />
+                    {/* Seta e manípulo de arrasto na ponta */}
+                    <circle
+                      cx={needleTip.x}
+                      cy={needleTip.y}
+                      r={isDraggingDial ? 8 : 6.5}
+                      fill="#ef4444"
+                      stroke="#ffffff"
+                      strokeWidth="2.5"
+                    />
                   </g>
 
                   {/* Pivô Central (Cubo metálico da agulha) */}
@@ -634,8 +772,8 @@ export function WavelengthGameRoom() {
                   <circle cx={CX} cy={CY} r="5" fill="#ffffff" />
                 </svg>
 
-                {/* Badge Flutuante do Indicador de Porcentagem Atual */}
-                <div className="absolute bottom-2 px-3 py-1 bg-black/80 border border-white/20 rounded-full font-mono text-xs font-bold text-gray-300">
+                {/* Badge Flutuante do Indicador de Porcentagem Atual da Agulha */}
+                <div className="absolute bottom-2 px-3 py-1 bg-black/80 border border-white/20 rounded-full font-mono text-xs font-bold text-gray-200 shadow-md">
                   {dial.toFixed(1)}%
                 </div>
               </div>
@@ -658,13 +796,13 @@ export function WavelengthGameRoom() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => adjustDial(-5)}
-                      className="px-3 py-1.5 bg-white/5 hover:bg-white/15 border border-white/10 rounded-xl font-mono text-xs font-bold cursor-pointer transition-all"
+                      className="px-3 py-2 bg-white/5 hover:bg-white/15 border border-white/10 rounded-xl font-mono text-xs font-bold cursor-pointer transition-all active:scale-95"
                     >
                       -5%
                     </button>
                     <button
                       onClick={() => adjustDial(-1)}
-                      className="px-3 py-1.5 bg-white/5 hover:bg-white/15 border border-white/10 rounded-xl font-mono text-xs font-bold cursor-pointer transition-all"
+                      className="px-3 py-2 bg-white/5 hover:bg-white/15 border border-white/10 rounded-xl font-mono text-xs font-bold cursor-pointer transition-all active:scale-95"
                     >
                       -1%
                     </button>
@@ -673,13 +811,13 @@ export function WavelengthGameRoom() {
                     </span>
                     <button
                       onClick={() => adjustDial(1)}
-                      className="px-3 py-1.5 bg-white/5 hover:bg-white/15 border border-white/10 rounded-xl font-mono text-xs font-bold cursor-pointer transition-all"
+                      className="px-3 py-2 bg-white/5 hover:bg-white/15 border border-white/10 rounded-xl font-mono text-xs font-bold cursor-pointer transition-all active:scale-95"
                     >
                       +1%
                     </button>
                     <button
                       onClick={() => adjustDial(5)}
-                      className="px-3 py-1.5 bg-white/5 hover:bg-white/15 border border-white/10 rounded-xl font-mono text-xs font-bold cursor-pointer transition-all"
+                      className="px-3 py-2 bg-white/5 hover:bg-white/15 border border-white/10 rounded-xl font-mono text-xs font-bold cursor-pointer transition-all active:scale-95"
                     >
                       +5%
                     </button>
@@ -779,10 +917,11 @@ export function WavelengthGameRoom() {
             {/* FASE DE REVELAÇÃO (REVEAL_PHASE) */}
             {gameState.state === 'REVEAL_PHASE' && (
               <div className="w-full max-w-xl flex flex-col items-center space-y-5">
-                {/* Banner de Pontuação da Rodada */}
+                {/* Banner de Pontuação da Rodada Animado */}
                 <motion.div
-                  initial={{ scale: 0.8, opacity: 0 }}
+                  initial={{ scale: 0.7, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: 'spring', stiffness: 350, damping: 20 }}
                   className={`w-full p-6 rounded-3xl border-2 text-center shadow-2xl flex flex-col items-center space-y-2 ${
                     gameState.roundPoints === 4
                       ? 'bg-amber-950/70 border-amber-400 text-amber-300 shadow-[0_0_35px_rgba(234,179,8,0.5)]'
@@ -830,7 +969,7 @@ export function WavelengthGameRoom() {
               🏆
             </div>
 
-            {/* Avaliação */}
+            {/* Avaliação de Desempenho */}
             {(() => {
               const rating = getScoreRating(gameState.teamScore);
               return (
