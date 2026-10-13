@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useCahStore, type CahWhiteCard, type AnonymousSubmission } from '../store/useCahStore';
+import { cahAudio } from '../lib/audioEngine';
 import { useAuthStore } from '../store/useAuthStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GameShell } from '../components/game/GameShell';
 import { GameHeader } from '../components/game/GameHeader';
 import { SideDrawer, type TabOption } from '../components/game/SideDrawer';
-import { Users, BookOpen, History as HistoryIcon } from 'lucide-react';
+import { Users, BookOpen, History as HistoryIcon, Sparkles } from 'lucide-react';
+import { CustomThemeModal } from '../components/game/CustomThemeModal';
 
 // Renderiza a Carta Preta com suporte para "Escolha 1" ou "Escolha 2" e pré-visualização dinâmica
 function BlackCardView({
@@ -342,6 +344,8 @@ export function CahGameRoom() {
     restartGame,
     discardCards,
     clearWinnerToast,
+    soundEnabled,
+    toggleSound,
   } = useCahStore();
 
   const requiredPick = gameState?.currentBlackCard?.pick || 1;
@@ -355,6 +359,7 @@ export function CahGameRoom() {
   const [czarHoveredTexts, setCzarHoveredTexts] = useState<string[] | null>(null);
   const [drawerTab, setDrawerTab] = useState<'players' | 'history' | 'rules' | null>(null);
   const [showWinnerModal, setShowWinnerModal] = useState(false);
+  const [showCustomModal, setShowCustomModal] = useState(false);
 
   useEffect(() => {
     if (!session?.access_token || !roomId) {
@@ -386,6 +391,7 @@ export function CahGameRoom() {
   }, [gameState?.roundNumber, gameState?.state]);
 
   const handleCardClick = (cardId: string) => {
+    cahAudio.playCardSelect();
     if (isDiscardMode) {
       if (selectedDiscardIds.includes(cardId)) {
         setSelectedDiscardIds(selectedDiscardIds.filter((id) => id !== cardId));
@@ -484,6 +490,8 @@ export function CahGameRoom() {
           roomCode={roomId || ''}
           playerCount={totalPlayers}
           accentColor="text-zinc-100"
+          soundEnabled={soundEnabled}
+          onToggleSound={toggleSound}
           onExit={() => navigate('/hub')}
           onTogglePlayers={() => setDrawerTab('players')}
           onToggleLog={() => setDrawerTab('history')}
@@ -753,6 +761,14 @@ export function CahGameRoom() {
               </div>
             )}
           </SideDrawer>
+
+          <CustomThemeModal
+            isOpen={showCustomModal}
+            onClose={() => setShowCustomModal(false)}
+            gameType="cah"
+            existingCustomCount={(gameState.customBlackCount || 0) + (gameState.customWhiteCount || 0)}
+            onSaveThemes={(payload) => sendMessage(payload.type, payload)}
+          />
         </>
       }
     >
@@ -883,6 +899,19 @@ export function CahGameRoom() {
           </div>
 
           <div className="w-full flex flex-col gap-2 pt-1">
+            {/* Botão de Cartas Personalizadas */}
+            <button
+              type="button"
+              onClick={() => setShowCustomModal(true)}
+              className="w-full py-2.5 px-3 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer"
+            >
+              <Sparkles size={14} />
+              <span>Cartas Personalizadas</span>
+              <span className="px-1.5 py-0.5 rounded-full bg-amber-500/30 text-[10px] font-mono">
+                {(gameState.customBlackCount || 0) + (gameState.customWhiteCount || 0)}
+              </span>
+            </button>
+
             <button
               onClick={toggleReady}
               className={`w-full py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all cursor-pointer ${

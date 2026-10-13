@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { cahAudio } from '../lib/audioEngine';
 
 export interface CahBlackCard {
   id: string;
@@ -68,6 +69,8 @@ export interface CahState {
   actionLog: string[];
   discardsRemaining?: number;
   language?: string;
+  customBlackCount?: number;
+  customWhiteCount?: number;
 }
 
 export interface CahDisconnectNotice {
@@ -85,6 +88,8 @@ interface CahStore {
   errorMsg: string | null;
   disconnectNotice: CahDisconnectNotice | null;
   roundWinnerToast: RoundWinnerInfo | null;
+  soundEnabled: boolean;
+  toggleSound: () => void;
 
   connect: (roomId: string, token: string) => void;
   disconnect: () => void;
@@ -115,6 +120,11 @@ export const useCahStore = create<CahStore>((set, get) => ({
   errorMsg: null,
   disconnectNotice: null,
   roundWinnerToast: null,
+  soundEnabled: cahAudio.enabled,
+  toggleSound: () => {
+    const next = cahAudio.toggle();
+    set({ soundEnabled: next });
+  },
 
   connect: (roomId, token) => {
     lastConnParams = { roomId, token };
@@ -169,14 +179,21 @@ export const useCahStore = create<CahStore>((set, get) => ({
       }
 
       switch (data.type) {
-        case 'GAME_STATE_UPDATE':
+        case 'GAME_STATE_UPDATE': {
+          const prevState = get().gameState;
+          const nextState = data.payload;
+          if (nextState?.roundNumber && prevState?.roundNumber && nextState.roundNumber > prevState.roundNumber) {
+            cahAudio.playRoundStart();
+          }
           set({
-            gameState: data.payload,
-            disconnectNotice: data.payload.state === 'LOBBY' ? null : get().disconnectNotice,
+            gameState: nextState,
+            disconnectNotice: nextState.state === 'LOBBY' ? null : get().disconnectNotice,
           });
           break;
+        }
 
         case 'ROUND_WINNER_REVEALED': {
+          cahAudio.playCzarWinner();
           const payload = data.payload || {};
           const cardsList: CahWhiteCard[] = payload.cards || [];
           const cardObj: CahWhiteCard =
@@ -197,6 +214,7 @@ export const useCahStore = create<CahStore>((set, get) => ({
         }
 
         case 'SUBMISSION_REVEALED': {
+          cahAudio.playCardSlam();
           const { submissionId, cards } = data.payload || {};
           set((state) => {
             if (!state.gameState || !state.gameState.anonymousSubmissions) return state;
@@ -327,6 +345,7 @@ export const useCahStore = create<CahStore>((set, get) => ({
   },
 
   submitAnswer: (cardIds) => {
+    cahAudio.playCardSlam();
     if (Array.isArray(cardIds)) {
       get().sendMessage('SUBMIT_ANSWER', { cardIds, cardId: cardIds[0] });
     } else {
@@ -335,6 +354,7 @@ export const useCahStore = create<CahStore>((set, get) => ({
   },
 
   discardCards: (cardIds) => {
+    cahAudio.playDiscard();
     get().sendMessage('DISCARD_CARDS', { cardIds });
   },
 

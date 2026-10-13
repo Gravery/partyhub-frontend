@@ -66,6 +66,8 @@ export interface HanabiDisconnectNotice {
   graceSeconds: number;
 }
 
+import { hanabiAudio } from '../lib/audioEngine';
+
 interface HanabiStore {
   socket: WebSocket | null;
   isConnected: boolean;
@@ -75,6 +77,8 @@ interface HanabiStore {
   errorMsg: string | null;
   disconnectNotice: HanabiDisconnectNotice | null;
   lastPlayResult: HanabiPlayResult | null;
+  soundEnabled: boolean;
+  toggleSound: () => void;
 
   connect: (roomId: string, token: string) => void;
   disconnect: () => void;
@@ -103,6 +107,11 @@ export const useHanabiStore = create<HanabiStore>((set, get) => ({
   errorMsg: null,
   disconnectNotice: null,
   lastPlayResult: null,
+  soundEnabled: hanabiAudio.enabled,
+  toggleSound: () => {
+    const next = hanabiAudio.toggle();
+    set({ soundEnabled: next });
+  },
 
   connect: (roomId, token) => {
     lastConnParams = { roomId, token };
@@ -154,14 +163,29 @@ export const useHanabiStore = create<HanabiStore>((set, get) => ({
       }
 
       switch (data.type) {
-        case 'GAME_STATE_UPDATE':
+        case 'GAME_STATE_UPDATE': {
+          const prevState = get().gameState?.state;
+          const nextState = data.payload?.state;
+          if (nextState === 'GAME_OVER' && prevState !== 'GAME_OVER') {
+            if (data.payload?.gameOverReason === 'VICTORY') {
+              hanabiAudio.playVictory();
+            } else {
+              hanabiAudio.playFuseExplosion();
+            }
+          }
           set({
             gameState: data.payload,
             disconnectNotice: data.payload.state === 'LOBBY' ? null : get().disconnectNotice,
           });
           break;
+        }
 
         case 'CARD_PLAY_RESULT':
+          if (data.payload?.success) {
+            hanabiAudio.playFireworkSuccess();
+          } else {
+            hanabiAudio.playFuseExplosion();
+          }
           set({
             lastPlayResult: {
               ...data.payload,
@@ -272,10 +296,12 @@ export const useHanabiStore = create<HanabiStore>((set, get) => ({
   },
 
   giveClue: (targetUserId, clueType, value) => {
+    hanabiAudio.playClue();
     get().sendMessage('GIVE_CLUE', { targetUserId, clueType, value });
   },
 
   discardCard: (cardId) => {
+    hanabiAudio.playCardDiscard();
     get().sendMessage('DISCARD_CARD', { cardId });
   },
 

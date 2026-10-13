@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { ittoAudio } from '../lib/audioEngine';
 
 interface Card {
   id: string;
@@ -20,6 +21,7 @@ interface GameState {
   publicHands: Record<string, Card>;
   tableOrder: string[];
   level: number;
+  customThemesCount?: number;
 }
 
 export interface CursorInfo {
@@ -54,6 +56,8 @@ interface GameStore {
   roundResult: RoundResult | null;
   disconnectNotice: DisconnectNotice | null;
   cursors: Record<string, CursorInfo>;
+  soundEnabled: boolean;
+  toggleSound: () => void;
 
   connect: (gameSlug: string, roomId: string, token: string) => void;
   disconnect: () => void;
@@ -102,6 +106,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
   secretCards: {},
   disconnectNotice: null,
   cursors: {},
+  soundEnabled: ittoAudio.enabled,
+  toggleSound: () => {
+    const next = ittoAudio.toggle();
+    set({ soundEnabled: next });
+  },
 
   connect: (gameSlug, roomId, token) => {
     lastConnParams = { gameSlug, roomId, token };
@@ -174,9 +183,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
       }
 
       switch (data.type) {
-        case 'GAME_STATE_UPDATE':
+        case 'GAME_STATE_UPDATE': {
+          const prevState = get().gameState;
+          const newState: GameState = data.payload;
+          if (newState.state === 'REVEALING' && prevState?.state !== 'REVEALING') {
+            ittoAudio.playCardReveal();
+          }
           set((state) => {
-            const newState: GameState = data.payload;
             // Se o jogo voltou para o lobby, limpa notice e resultados anteriores
             const isLobby = newState.state === 'LOBBY';
             return {
@@ -187,6 +200,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             };
           });
           break;
+        }
 
         case 'ERROR_INPUT':
           set({ errorMsg: data.payload });
@@ -230,6 +244,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         }
 
         case 'CARD_LOCK_UPDATE':
+          ittoAudio.playCardTick();
           set((state) => {
             if (!state.gameState) return state;
             const newHands = { ...state.gameState.publicHands };
@@ -245,6 +260,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           break;
 
         case 'TABLE_UPDATED':
+          ittoAudio.playCardTick();
           set((state) => {
             if (!state.gameState) return state;
             return { gameState: { ...state.gameState, tableOrder: data.payload } };
@@ -252,6 +268,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           break;
 
         case 'SECRET_CARD':
+          ittoAudio.playCardTick();
           set((state) => ({
             secretCards: {
               ...state.secretCards,
@@ -261,6 +278,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
           break;
 
         case 'ROUND_RESULT':
+          if (data.payload?.win) {
+            ittoAudio.playRoundSuccess();
+          } else {
+            ittoAudio.playRoundFailed();
+          }
           set({ roundResult: data.payload });
           break;
       }

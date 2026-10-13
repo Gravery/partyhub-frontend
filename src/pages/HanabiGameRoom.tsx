@@ -543,6 +543,8 @@ export function HanabiGameRoom() {
     playCard,
     restartGame,
     disconnectNotice,
+    soundEnabled,
+    toggleSound,
   } = useHanabiStore();
 
   const [clueModalTarget, setClueModalTarget] = useState<string | null>(null);
@@ -657,6 +659,8 @@ export function HanabiGameRoom() {
           roomCode={roomId || ''}
           playerCount={totalPlayers}
           accentColor="text-purple-300"
+          soundEnabled={soundEnabled}
+          onToggleSound={toggleSound}
           onExit={() => {
             disconnect();
             navigate('/hub');

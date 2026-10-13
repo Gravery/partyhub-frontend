@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useGameStore } from '../store/useGameStore';
+import { ittoAudio } from '../lib/audioEngine';
 import { useAuthStore } from '../store/useAuthStore';
 import { GameShell } from '../components/game/GameShell';
 import { GameHeader } from '../components/game/GameHeader';
@@ -10,7 +11,8 @@ import { DndContext, closestCenter, type DragEndEvent, type DragStartEvent } fro
 import { arrayMove, SortableContext, rectSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { motion, useMotionValue, useTransform, AnimatePresence } from 'framer-motion';
-import { Users, BookOpen, History as HistoryIcon } from 'lucide-react';
+import { Users, BookOpen, History as HistoryIcon, Sparkles } from 'lucide-react';
+import { CustomThemeModal } from '../components/game/CustomThemeModal';
 
 function SortableCard({
   id,
@@ -170,10 +172,13 @@ export function IttoGameRoom() {
     sendMessage,
     sendCursorMove,
     clearError,
+    soundEnabled,
+    toggleSound,
   } = useGameStore();
 
   const [inputs, setInputs] = useState<Record<string, string>>({});
   const [drawerTab, setDrawerTab] = useState<'players' | 'history' | 'rules' | null>(null);
+  const [showCustomModal, setShowCustomModal] = useState(false);
   const tableRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -239,6 +244,7 @@ export function IttoGameRoom() {
   const handleDescSubmit = (cardID: string) => {
     const desc = inputs[cardID]?.trim();
     if (!desc) return;
+    ittoAudio.playClueSubmitted();
     sendMessage('SUBMIT_DESCRIPTION', { cardID, text: desc, description: desc });
   };
 
@@ -275,6 +281,8 @@ export function IttoGameRoom() {
           roomCode={roomId || ''}
           playerCount={totalPlayers}
           accentColor="text-purple-400"
+          soundEnabled={soundEnabled}
+          onToggleSound={toggleSound}
           onExit={() => navigate('/hub')}
           onTogglePlayers={() => setDrawerTab('players')}
           onToggleRules={() => setDrawerTab('rules')}
@@ -426,6 +434,14 @@ export function IttoGameRoom() {
               </div>
             )}
           </SideDrawer>
+
+          <CustomThemeModal
+            isOpen={showCustomModal}
+            onClose={() => setShowCustomModal(false)}
+            gameType="itto"
+            existingCustomCount={gameState.customThemesCount || 0}
+            onSaveThemes={(payload) => sendMessage(payload.type, payload)}
+          />
         </>
       }
     >
@@ -495,6 +511,18 @@ export function IttoGameRoom() {
           </div>
 
           <div className="w-full flex flex-col gap-2 pt-1">
+            <button
+              type="button"
+              onClick={() => setShowCustomModal(true)}
+              className="w-full py-2.5 px-3 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-purple-300 font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer"
+            >
+              <Sparkles size={14} />
+              <span>Temas Personalizados</span>
+              <span className="px-1.5 py-0.5 rounded-full bg-purple-500/30 text-[10px] font-mono">
+                {gameState.customThemesCount || 0}
+              </span>
+            </button>
+
             <button
               onClick={() => sendMessage('TOGGLE_READY_LOBBY')}
               className={`w-full py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all cursor-pointer ${

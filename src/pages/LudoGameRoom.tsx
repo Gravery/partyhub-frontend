@@ -155,6 +155,8 @@ export function LudoGameRoom() {
     finishMatch,
     clearToast,
     clearError,
+    soundEnabled,
+    toggleSound,
   } = useLudoStore();
 
   const [animatedSteps, setAnimatedSteps] = useState<Record<string, number>>({});
@@ -342,6 +344,8 @@ export function LudoGameRoom() {
           roomCode={roomId || ''}
           playerCount={totalPlayers}
           accentColor="text-amber-400"
+          soundEnabled={soundEnabled}
+          onToggleSound={toggleSound}
           onExit={() => navigate('/hub')}
           onTogglePlayers={() => setDrawerTab('players')}
           onToggleLog={() => setDrawerTab('history')}

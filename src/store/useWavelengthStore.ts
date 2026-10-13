@@ -49,6 +49,7 @@ export interface WavelengthGameState {
   roundPoints: number;
   teamScore: number;
   history: WavelengthHistory[];
+  customThemesCount?: number;
 }
 
 // Síntese de áudio Web Audio API para Wavelength

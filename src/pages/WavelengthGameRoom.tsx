@@ -7,7 +7,8 @@ import { useAuthStore } from '../store/useAuthStore';
 import { GameShell } from '../components/game/GameShell';
 import { GameHeader } from '../components/game/GameHeader';
 import { SideDrawer, type TabOption } from '../components/game/SideDrawer';
-import { Users, BookOpen, History as HistoryIcon, AlertTriangle } from 'lucide-react';
+import { Users, BookOpen, History as HistoryIcon, AlertTriangle, Sparkles } from 'lucide-react';
+import { CustomThemeModal } from '../components/game/CustomThemeModal';
 
 // Geometria do mostrador (arco semicircular)
 const CX = 250;
@@ -68,11 +69,13 @@ export function WavelengthGameRoom() {
     restartGame,
     toggleSound,
     clearError,
+    sendMessage,
   } = useWavelengthStore();
 
   const [clueInput, setClueInput] = useState('');
   const [isDraggingDial, setIsDraggingDial] = useState(false);
   const [drawerTab, setDrawerTab] = useState<'players' | 'history' | 'rules' | null>(null);
+  const [showCustomModal, setShowCustomModal] = useState(false);
   const svgRef = useRef<SVGSVGElement | null>(null);
 
   useEffect(() => {
@@ -513,6 +516,14 @@ export function WavelengthGameRoom() {
               </div>
             )}
           </SideDrawer>
+
+          <CustomThemeModal
+            isOpen={showCustomModal}
+            onClose={() => setShowCustomModal(false)}
+            gameType="wavelength"
+            existingCustomCount={gameState.customThemesCount || 0}
+            onSaveThemes={(payload) => sendMessage(payload.type, payload)}
+          />
         </>
       }
     >
@@ -575,6 +586,19 @@ export function WavelengthGameRoom() {
               })}
             </div>
           </div>
+
+          {/* Botão de Temas Personalizados */}
+          <button
+            type="button"
+            onClick={() => setShowCustomModal(true)}
+            className="w-full py-2.5 px-3 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer"
+          >
+            <Sparkles size={14} />
+            <span>Temas / Espectros Personalizados</span>
+            <span className="px-1.5 py-0.5 rounded-full bg-cyan-500/30 text-[10px] font-mono">
+              {gameState.customThemesCount || 0}
+            </span>
+          </button>
 
           <div className="w-full flex flex-col sm:flex-row gap-3">
             <button
