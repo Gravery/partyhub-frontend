@@ -148,4 +148,14 @@ export const api = {
     }
     return data;
   },
+
+  async getRoomInfo(code: string): Promise<{ exists: boolean; roomId?: string; gameSlug?: string; playerCount?: number; error?: string }> {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/v1/rooms/${encodeURIComponent(code)}`);
+      const data = await res.json();
+      return data;
+    } catch (err: any) {
+      return { exists: false, error: err.message || 'Erro ao conectar ao servidor' };
+    }
+  },
 };

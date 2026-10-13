@@ -2,431 +2,374 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../store/useAuthStore';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { LanguageSelector } from '../components/LanguageSelector';
+import { api } from '../lib/api';
+import { ArrowRight, Users, Sparkles, AlertCircle, PlusCircle, LogIn, Gamepad2 } from 'lucide-react';
+
+import ittoCover from '../assets/games/itto.jpg';
+import hanabiCover from '../assets/games/hanabi.jpg';
+import cahCover from '../assets/games/cah.jpg';
+import ludoCover from '../assets/games/ludo.jpg';
+import wavelengthCover from '../assets/games/wavelength.jpg';
+
+interface GameConfig {
+  id: string;
+  slug: string;
+  titleKey: string;
+  tagKey: string;
+  descKey: string;
+  createKey: string;
+  playerCount: string;
+  cover: string;
+  accentColor: string;
+  borderHover: string;
+  btnGradient: string;
+  category: string;
+}
+
+const GAMES: GameConfig[] = [
+  {
+    id: 'wavelength',
+    slug: 'wavelength',
+    titleKey: 'hub.wavelength_title',
+    tagKey: 'hub.wavelength_tag',
+    descKey: 'hub.wavelength_desc',
+    createKey: 'hub.wavelength_create',
+    playerCount: '2+ Jogadores',
+    cover: wavelengthCover,
+    accentColor: 'text-cyan-400',
+    borderHover: 'hover:border-cyan-400/60 hover:shadow-[0_0_35px_rgba(6,182,212,0.25)]',
+    btnGradient: 'bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-400 hover:to-cyan-500 text-white shadow-[0_0_20px_rgba(6,182,212,0.35)]',
+    category: 'Sintonia & Telepatia',
+  },
+  {
+    id: 'cah',
+    slug: 'cah',
+    titleKey: 'hub.cah_title',
+    tagKey: 'hub.cah_tag',
+    descKey: 'hub.cah_desc',
+    createKey: 'hub.cah_create',
+    playerCount: '3-12 Jogadores',
+    cover: cahCover,
+    accentColor: 'text-zinc-200',
+    borderHover: 'hover:border-zinc-300 hover:shadow-[0_0_35px_rgba(244,244,245,0.18)]',
+    btnGradient: 'bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-500/80 shadow-[0_0_20px_rgba(255,255,255,0.15)]',
+    category: 'Humor Ácido',
+  },
+  {
+    id: 'ludo',
+    slug: 'ludo',
+    titleKey: 'hub.ludo_title',
+    tagKey: 'hub.ludo_tag',
+    descKey: 'hub.ludo_desc',
+    createKey: 'hub.ludo_create',
+    playerCount: '1-4 Jogadores',
+    cover: ludoCover,
+    accentColor: 'text-amber-400',
+    borderHover: 'hover:border-amber-400/60 hover:shadow-[0_0_35px_rgba(245,158,11,0.25)]',
+    btnGradient: 'bg-gradient-to-r from-red-600 via-amber-600 to-emerald-600 hover:brightness-110 text-white shadow-[0_0_20px_rgba(245,158,11,0.35)]',
+    category: 'Competitivo Clássico',
+  },
+  {
+    id: 'hanabi',
+    slug: 'hanabi',
+    titleKey: 'hub.hanabi_title',
+    tagKey: 'hub.hanabi_tag',
+    descKey: 'hub.hanabi_desc',
+    createKey: 'hub.hanabi_create',
+    playerCount: '2-5 Jogadores',
+    cover: hanabiCover,
+    accentColor: 'text-sky-400',
+    borderHover: 'hover:border-sky-400/60 hover:shadow-[0_0_35px_rgba(56,189,248,0.25)]',
+    btnGradient: 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-[0_0_20px_rgba(56,189,248,0.35)]',
+    category: 'Cooperativo',
+  },
+  {
+    id: 'itto',
+    slug: 'itto',
+    titleKey: 'hub.itto_title',
+    tagKey: 'hub.itto_tag',
+    descKey: 'hub.itto_desc',
+    createKey: 'hub.itto_create',
+    playerCount: '2-8 Jogadores',
+    cover: ittoCover,
+    accentColor: 'text-purple-400',
+    borderHover: 'hover:border-purple-400/60 hover:shadow-[0_0_35px_rgba(168,85,247,0.25)]',
+    btnGradient: 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white shadow-[0_0_20px_rgba(168,85,247,0.35)]',
+    category: 'Sincronia Mental',
+  },
+];
 
 export function Hub() {
   const { t } = useTranslation();
-  const { user } = useAuthStore();
+  const { user, username } = useAuthStore();
   const navigate = useNavigate();
-  const [ittoCode, setIttoCode] = useState('');
-  const [hanabiCode, setHanabiCode] = useState('');
-  const [cahCode, setCahCode] = useState('');
-  const [ludoCode, setLudoCode] = useState('');
-  const [wavelengthCode, setWavelengthCode] = useState('');
 
-  const createIttoRoom = () => {
-    const code = Math.random().toString(36).substring(2, 6).toUpperCase();
-    navigate(`/game/itto/${code}`);
-  };
+  // Unified global room code input
+  const [globalCode, setGlobalCode] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
 
-  const joinIttoRoom = (e: React.FormEvent) => {
+  // Individual card code drawer toggle
+  const [activeCodeDrawer, setActiveCodeDrawer] = useState<string | null>(null);
+  const [cardCode, setCardCode] = useState('');
+
+  // Handle Global Join Room with auto-lookup
+  const handleGlobalJoin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (ittoCode.trim()) {
-      navigate(`/game/itto/${ittoCode.toUpperCase()}`);
+    const cleanCode = globalCode.trim().toUpperCase();
+    if (!cleanCode) return;
+
+    setIsSearching(true);
+    setSearchError(null);
+
+    try {
+      const roomInfo = await api.getRoomInfo(cleanCode);
+      if (roomInfo.exists && roomInfo.gameSlug) {
+        navigate(`/game/${roomInfo.gameSlug}/${roomInfo.roomId || cleanCode}`);
+      } else {
+        setSearchError('Sala não encontrada. Verifique o código e tente novamente.');
+      }
+    } catch {
+      setSearchError('Não foi possível verificar a sala. Tente novamente.');
+    } finally {
+      setIsSearching(false);
     }
   };
 
-  const createHanabiRoom = () => {
+  const createRoom = (gameSlug: string) => {
     const code = Math.random().toString(36).substring(2, 6).toUpperCase();
-    navigate(`/game/hanabi/${code}`);
+    navigate(`/game/${gameSlug}/${code}`);
   };
 
-  const joinHanabiRoom = (e: React.FormEvent) => {
+  const joinSpecificGame = (gameSlug: string, e: React.FormEvent) => {
     e.preventDefault();
-    if (hanabiCode.trim()) {
-      navigate(`/game/hanabi/${hanabiCode.toUpperCase()}`);
-    }
-  };
-
-  const createCahRoom = () => {
-    const code = Math.random().toString(36).substring(2, 6).toUpperCase();
-    navigate(`/game/cah/${code}`);
-  };
-
-  const joinCahRoom = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (cahCode.trim()) {
-      navigate(`/game/cah/${cahCode.toUpperCase()}`);
-    }
-  };
-
-  const createLudoRoom = () => {
-    const code = Math.random().toString(36).substring(2, 6).toUpperCase();
-    navigate(`/game/ludo/${code}`);
-  };
-
-  const joinLudoRoom = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (ludoCode.trim()) {
-      navigate(`/game/ludo/${ludoCode.toUpperCase()}`);
-    }
-  };
-
-  const createWavelengthRoom = () => {
-    const code = Math.random().toString(36).substring(2, 6).toUpperCase();
-    navigate(`/game/wavelength/${code}`);
-  };
-
-  const joinWavelengthRoom = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (wavelengthCode.trim()) {
-      navigate(`/game/wavelength/${wavelengthCode.toUpperCase()}`);
+    if (cardCode.trim()) {
+      navigate(`/game/${gameSlug}/${cardCode.trim().toUpperCase()}`);
     }
   };
 
   return (
-    <div className="relative min-h-screen bg-[#020617] text-white p-8 font-sans overflow-hidden bg-grid-pattern">
+    <div className="relative min-h-screen bg-[#020617] text-white p-4 sm:p-6 md:p-8 font-sans overflow-x-hidden bg-grid-pattern selection:bg-purple-500 selection:text-white">
       <div className="crt-overlay" />
-      
-      {/* Background ambient light */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-[500px] bg-purple-900/20 blur-[120px] rounded-full pointer-events-none" />
 
-      <header className="relative z-10 flex flex-col md:flex-row justify-between items-center mb-16 border-b-2 border-purple-900/50 pb-6 gap-6">
-        <motion.h1 
-          className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-fuchsia-600 tracking-widest neon-text-shadow hover:animate-[glitch_0.3s_infinite]"
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ type: "spring", stiffness: 300, damping: 20 }}
-        >
-          PARTY HUB
-        </motion.h1>
-        
-        {/* Actions bar: Language Selector + Retro Readout for User Profile */}
-        <div className="flex items-center gap-4 flex-wrap justify-center">
+      {/* Ambient background glow */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-4/5 max-w-5xl h-[450px] bg-gradient-to-b from-purple-900/25 via-indigo-900/15 to-transparent blur-[140px] rounded-full pointer-events-none" />
+
+      {/* Top Console Bar */}
+      <header className="relative z-10 max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center mb-8 md:mb-12 border-b border-white/10 pb-5 gap-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400">
+            <Gamepad2 size={28} />
+          </div>
+          <div>
+            <h1 className="text-3xl md:text-4xl font-extrabold font-display tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400">
+              PARTY HUB
+            </h1>
+            <p className="text-xs text-gray-400 tracking-wide">
+              {t('hub.subtitle')}
+            </p>
+          </div>
+        </div>
+
+        {/* User Badge & Language Selector */}
+        <div className="flex items-center gap-3 flex-wrap justify-center">
           <LanguageSelector />
 
-          <motion.div 
+          <button
             onClick={() => navigate('/profile')}
-            className="flex items-center gap-6 bg-black p-4 border border-green-500/30 rounded-xl font-mono shadow-[0_0_15px_rgba(34,197,94,0.1)] cursor-pointer hover:bg-green-950/20 hover:border-green-400 transition-all"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0.1 }}
+            className="flex items-center gap-3 bg-slate-900/80 hover:bg-slate-800/90 px-4 py-2.5 border border-white/10 rounded-xl transition-all cursor-pointer shadow-lg group active:scale-95"
           >
-            <div className="flex flex-col">
-              <span className="text-green-500/70 text-xs uppercase tracking-widest">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-500 flex items-center justify-center font-bold text-xs shadow-md">
+              {(username || user?.email || 'U')[0].toUpperCase()}
+            </div>
+            <div className="flex flex-col text-left">
+              <span className="text-[10px] text-gray-400 uppercase tracking-widest font-semibold">
                 {t('hub.profile_btn')}
               </span>
-              <span className="text-green-400 font-bold">{useAuthStore.getState().username || user?.email}</span>
+              <span className="text-xs font-bold text-gray-200 group-hover:text-purple-300 transition-colors truncate max-w-[120px]">
+                {username || user?.email}
+              </span>
             </div>
-            <span className="text-green-500 text-xs uppercase font-black tracking-widest">&rarr;</span>
-          </motion.div>
+            <ArrowRight size={14} className="text-gray-400 group-hover:translate-x-0.5 transition-transform" />
+          </button>
         </div>
       </header>
 
-      <main className="relative z-10 max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
-        
-        {/* Card do Jogo 1: ITTO */}
-        <motion.div 
-          className="relative bg-black/40 backdrop-blur-xl rounded-3xl p-8 border-2 border-white/10 flex flex-col justify-between overflow-hidden shadow-2xl"
-          whileHover={{ y: -8, boxShadow: "0 20px 50px rgba(168,85,247,0.4)", borderColor: "rgba(168,85,247,0.5)" }}
-          transition={{ type: "spring", stiffness: 300, damping: 20 }}
-        >
-          <div className="absolute inset-0 opacity-10 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPjxyZWN0IHdpZHRoPSI0IiBoZWlnaHQ9IjQiIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSIvPjwvc3ZnPg==')] pointer-events-none mix-blend-overlay" />
-          
-          <div className="relative z-10">
-            <div className="flex items-start justify-between gap-3 mb-4">
-              <h2 className="text-3xl md:text-4xl font-black text-purple-300 tracking-wider">
-                {t('hub.itto_title')}
-              </h2>
-              <span className="px-3 py-1 bg-purple-500/20 text-purple-300 border border-purple-500/30 rounded-full text-xs font-mono font-bold whitespace-nowrap flex-shrink-0">
-                {t('hub.itto_tag')}
-              </span>
+      <div className="relative z-10 max-w-7xl mx-auto space-y-10 md:space-y-14">
+        {/* Global Join Hero Section */}
+        <section className="relative overflow-hidden rounded-3xl bg-slate-900/60 border border-white/10 backdrop-blur-xl p-6 md:p-8 shadow-2xl">
+          <div className="max-w-2xl mx-auto text-center space-y-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-300 text-xs font-semibold">
+              <Sparkles size={14} />
+              <span>Multiplayer Rápido</span>
             </div>
-            <p className="text-gray-300 text-sm mb-8 leading-relaxed">
-              {t('hub.itto_desc')}
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+              Tem um código de convite?
+            </h2>
+            <p className="text-sm text-gray-300">
+              Digite o código da sala de qualquer jogo para entrar instantaneamente na partida.
             </p>
-          </div>
-          
-          <div className="relative z-10 space-y-5">
-            <motion.button 
-              onClick={createIttoRoom} 
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.96 }}
-              className="w-full py-4 bg-purple-600 hover:bg-purple-500 text-white font-black tracking-widest uppercase rounded-xl overflow-hidden group shadow-[0_0_20px_rgba(147,51,234,0.4)] border border-purple-400/50 relative transition-all cursor-pointer text-sm"
-            >
-              <span className="relative z-10">{t('hub.itto_create')}</span>
-              <div className="absolute inset-0 h-full w-0 bg-white/20 transition-all duration-500 ease-out group-hover:w-full" />
-            </motion.button>
-            
-            <div className="relative flex items-center py-1">
-              <div className="flex-grow border-t border-purple-900/50" />
-              <span className="flex-shrink-0 mx-3 text-purple-400/60 font-bold font-mono text-[11px] uppercase tracking-widest">
-                {t('hub.or_enter_code')}
-              </span>
-              <div className="flex-grow border-t border-purple-900/50" />
-            </div>
 
-            <form onSubmit={joinIttoRoom} className="flex gap-2 relative group">
-              <input 
-                type="text" 
-                placeholder={t('hub.enter_code_placeholder')} 
-                maxLength={4}
-                value={ittoCode}
-                onChange={(e) => setIttoCode(e.target.value)}
-                className="w-full bg-black/80 border-2 border-gray-700 text-center uppercase text-xl font-black rounded-xl p-3.5 focus:outline-none focus:border-purple-500 transition-all placeholder:text-gray-700 font-mono text-purple-300"
-              />
-              <motion.button 
-                type="submit" 
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="px-6 bg-gray-800 hover:bg-purple-600 border-2 border-gray-700 hover:border-purple-400 rounded-xl font-black tracking-wider transition-all shadow-md text-sm cursor-pointer"
+            <form onSubmit={handleGlobalJoin} className="pt-2 max-w-md mx-auto flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  placeholder="EX: A1B2"
+                  maxLength={6}
+                  value={globalCode}
+                  onChange={(e) => {
+                    setGlobalCode(e.target.value.toUpperCase());
+                    setSearchError(null);
+                  }}
+                  className="w-full bg-black/60 border-2 border-white/20 focus:border-purple-400 text-center uppercase text-xl font-bold tracking-widest rounded-xl py-3 px-4 outline-none font-mono transition-all text-white placeholder:text-gray-600 shadow-inner"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={isSearching || !globalCode.trim()}
+                className="py-3 px-6 rounded-xl bg-purple-600 hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed font-bold text-sm tracking-wider uppercase flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(168,85,247,0.4)] transition-all cursor-pointer active:scale-95 shrink-0"
               >
-                {t('hub.join_btn')}
-              </motion.button>
+                {isSearching ? (
+                  <span>Buscando...</span>
+                ) : (
+                  <>
+                    <LogIn size={16} />
+                    <span>Entrar na Sala</span>
+                  </>
+                )}
+              </button>
             </form>
-          </div>
-        </motion.div>
 
-        {/* Card do Jogo 2: HANABI */}
-        <motion.div 
-          className="relative bg-black/40 backdrop-blur-xl rounded-3xl p-8 border-2 border-white/10 flex flex-col justify-between overflow-hidden shadow-2xl"
-          whileHover={{ y: -8, boxShadow: "0 20px 50px rgba(239,68,68,0.3)", borderColor: "rgba(244,63,94,0.5)" }}
-          transition={{ type: "spring", stiffness: 300, damping: 20 }}
-        >
-          <div className="absolute inset-0 opacity-10 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPjxyZWN0IHdpZHRoPSI0IiBoZWlnaHQ9IjQiIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSIvPjwvc3ZnPg==')] pointer-events-none mix-blend-overlay" />
-          
-          <div className="relative z-10">
-            <div className="flex items-start justify-between gap-3 mb-4">
-              <h2 className="text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-amber-300 to-blue-400 tracking-wider">
-                {t('hub.hanabi_title')}
-              </h2>
-              <span className="px-3 py-1 bg-red-500/20 text-red-300 border border-red-500/30 rounded-full text-xs font-mono font-bold whitespace-nowrap flex-shrink-0">
-                {t('hub.hanabi_tag')}
-              </span>
-            </div>
-            <p className="text-gray-300 text-sm mb-8 leading-relaxed">
-              {t('hub.hanabi_desc')}
-            </p>
+            <AnimatePresence>
+              {searchError && (
+                <motion.div
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-red-950/80 border border-red-500/50 text-red-300 text-xs font-medium"
+                >
+                  <AlertCircle size={14} />
+                  <span>{searchError}</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
-          
-          <div className="relative z-10 space-y-5">
-            <motion.button 
-              onClick={createHanabiRoom} 
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.96 }}
-              className="w-full py-4 bg-gradient-to-r from-red-600 via-purple-600 to-blue-600 hover:opacity-90 text-white font-black tracking-widest uppercase rounded-xl overflow-hidden group shadow-[0_0_20px_rgba(239,68,68,0.3)] border border-red-400/50 relative transition-all cursor-pointer text-sm"
-            >
-              <span className="relative z-10">{t('hub.hanabi_create')}</span>
-              <div className="absolute inset-0 h-full w-0 bg-white/20 transition-all duration-500 ease-out group-hover:w-full" />
-            </motion.button>
-            
-            <div className="relative flex items-center py-1">
-              <div className="flex-grow border-t border-purple-900/50" />
-              <span className="flex-shrink-0 mx-3 text-purple-400/60 font-bold font-mono text-[11px] uppercase tracking-widest">
-                {t('hub.or_enter_code')}
-              </span>
-              <div className="flex-grow border-t border-purple-900/50" />
-            </div>
+        </section>
 
-            <form onSubmit={joinHanabiRoom} className="flex gap-2 relative group">
-              <input 
-                type="text" 
-                placeholder={t('hub.enter_code_placeholder')} 
-                maxLength={4}
-                value={hanabiCode}
-                onChange={(e) => setHanabiCode(e.target.value)}
-                className="w-full bg-black/80 border-2 border-gray-700 text-center uppercase text-xl font-black rounded-xl p-3.5 focus:outline-none focus:border-red-500 transition-all placeholder:text-gray-700 font-mono text-amber-300"
-              />
-              <motion.button 
-                type="submit" 
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="px-6 bg-gray-800 hover:bg-red-600 border-2 border-gray-700 hover:border-red-400 rounded-xl font-black tracking-wider transition-all shadow-md text-sm cursor-pointer"
-              >
-                {t('hub.join_btn')}
-              </motion.button>
-            </form>
+        {/* Games Grid */}
+        <section className="space-y-6">
+          <div className="flex items-center justify-between border-b border-white/10 pb-3">
+            <h3 className="text-xl font-bold tracking-tight text-gray-200">
+              Catálogo de Jogos
+            </h3>
+            <span className="text-xs text-gray-400">
+              5 jogos disponíveis
+            </span>
           </div>
-        </motion.div>
 
-        {/* Card do Jogo 3: CARTAS CONTRA A HUMANIDADE */}
-        <motion.div 
-          className="relative bg-black/50 backdrop-blur-xl rounded-3xl p-8 border-2 border-white/20 flex flex-col justify-between overflow-hidden shadow-2xl"
-          whileHover={{ y: -8, boxShadow: "0 20px 50px rgba(255,255,255,0.2)", borderColor: "rgba(255,255,255,0.4)" }}
-          transition={{ type: "spring", stiffness: 300, damping: 20 }}
-        >
-          <div className="absolute inset-0 opacity-10 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPjxyZWN0IHdpZHRoPSI0IiBoZWlnaHQ9IjQiIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSIvPjwvc3ZnPg==')] pointer-events-none mix-blend-overlay" />
-          
-          <div className="relative z-10">
-            <div className="flex items-start justify-between gap-3 mb-4">
-              <h2 className="text-3xl md:text-4xl font-black text-white tracking-wider">
-                {t('hub.cah_title')}
-              </h2>
-              <span className="px-3 py-1 bg-white/10 text-white border border-white/20 rounded-full text-xs font-mono font-bold whitespace-nowrap flex-shrink-0">
-                {t('hub.cah_tag')}
-              </span>
-            </div>
-            <p className="text-gray-300 text-sm mb-8 leading-relaxed">
-              {t('hub.cah_desc')}
-            </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {GAMES.map((game) => {
+              const isDrawerOpen = activeCodeDrawer === game.id;
+
+              return (
+                <motion.article
+                  key={game.id}
+                  whileHover={{ y: -6 }}
+                  transition={{ type: 'spring', stiffness: 350, damping: 25 }}
+                  className={`group relative bg-slate-900/70 border border-white/10 rounded-2xl overflow-hidden flex flex-col justify-between transition-all duration-300 ${game.borderHover}`}
+                >
+                  {/* Game Cover Art */}
+                  <div className="relative aspect-[16/9] w-full overflow-hidden bg-black/40 border-b border-white/10">
+                    <img
+                      src={game.cover}
+                      alt={t(game.titleKey)}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      loading="lazy"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-black/20" />
+
+                    {/* Top Badges */}
+                    <div className="absolute top-3 inset-x-3 flex items-center justify-between gap-2">
+                      <span className="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-black/60 backdrop-blur-md border border-white/10 text-gray-200 shadow-md">
+                        {game.category}
+                      </span>
+                      <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-black/60 backdrop-blur-md border border-white/10 text-gray-200 shadow-md">
+                        <Users size={12} className="text-gray-400" />
+                        <span>{t(game.tagKey)}</span>
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Body Content */}
+                  <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
+                    <div className="space-y-2">
+                      <h4 className={`text-2xl font-bold tracking-tight ${game.accentColor}`}>
+                        {t(game.titleKey)}
+                      </h4>
+                      <p className="text-xs sm:text-sm text-gray-300 leading-relaxed line-clamp-3">
+                        {t(game.descKey)}
+                      </p>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="space-y-2.5 pt-2">
+                      <button
+                        onClick={() => createRoom(game.slug)}
+                        className={`w-full py-3 px-4 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 ${game.btnGradient}`}
+                      >
+                        <PlusCircle size={16} />
+                        <span>{t(game.createKey)}</span>
+                      </button>
+
+                      {/* Direct Room Code Accordion */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveCodeDrawer(isDrawerOpen ? null : game.id);
+                          setCardCode('');
+                        }}
+                        className="w-full text-center py-1.5 text-xs text-gray-400 hover:text-gray-200 transition-colors font-medium cursor-pointer"
+                      >
+                        {isDrawerOpen ? 'Fechar entrada direta' : 'Ou entrar com código desta sala'}
+                      </button>
+
+                      <AnimatePresence>
+                        {isDrawerOpen && (
+                          <motion.form
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            onSubmit={(e) => joinSpecificGame(game.slug, e)}
+                            className="flex gap-2 pt-1"
+                          >
+                            <input
+                              type="text"
+                              placeholder="CÓDIGO"
+                              maxLength={6}
+                              value={cardCode}
+                              onChange={(e) => setCardCode(e.target.value.toUpperCase())}
+                              className="flex-1 bg-black/60 border border-white/20 text-center uppercase text-sm font-bold tracking-widest rounded-lg py-2 px-3 outline-none font-mono focus:border-white/50 text-white"
+                            />
+                            <button
+                              type="submit"
+                              disabled={!cardCode.trim()}
+                              className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg text-xs font-bold uppercase disabled:opacity-40 cursor-pointer transition-colors"
+                            >
+                              Entrar
+                            </button>
+                          </motion.form>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </div>
+                </motion.article>
+              );
+            })}
           </div>
-          
-          <div className="relative z-10 space-y-5">
-            <motion.button 
-              onClick={createCahRoom} 
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.96 }}
-              className="w-full py-4 bg-white hover:bg-gray-100 text-black font-black tracking-widest uppercase rounded-xl overflow-hidden group shadow-[0_0_20px_rgba(255,255,255,0.3)] border border-white relative transition-all cursor-pointer text-sm"
-            >
-              <span className="relative z-10">{t('hub.cah_create')}</span>
-              <div className="absolute inset-0 h-full w-0 bg-black/10 transition-all duration-500 ease-out group-hover:w-full" />
-            </motion.button>
-            
-            <div className="relative flex items-center py-1">
-              <div className="flex-grow border-t border-gray-700" />
-              <span className="flex-shrink-0 mx-3 text-gray-400 font-bold font-mono text-[11px] uppercase tracking-widest">
-                {t('hub.or_enter_code')}
-              </span>
-              <div className="flex-grow border-t border-gray-700" />
-            </div>
-
-            <form onSubmit={joinCahRoom} className="flex gap-2 relative group">
-              <input 
-                type="text" 
-                placeholder={t('hub.enter_code_placeholder')} 
-                maxLength={4}
-                value={cahCode}
-                onChange={(e) => setCahCode(e.target.value)}
-                className="w-full bg-black/80 border-2 border-gray-700 text-center uppercase text-xl font-black rounded-xl p-3.5 focus:outline-none focus:border-white transition-all placeholder:text-gray-700 font-mono text-white"
-              />
-              <motion.button 
-                type="submit" 
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="px-6 bg-gray-800 hover:bg-white hover:text-black border-2 border-gray-700 hover:border-white rounded-xl font-black tracking-wider transition-all shadow-md text-sm cursor-pointer"
-              >
-                {t('hub.join_btn')}
-              </motion.button>
-            </form>
-          </div>
-        </motion.div>
-
-        {/* Card do Jogo 4: LUDO */}
-        <motion.div 
-          className="relative bg-black/40 backdrop-blur-xl rounded-3xl p-8 border-2 border-white/10 flex flex-col justify-between overflow-hidden shadow-2xl"
-          whileHover={{ y: -8, boxShadow: "0 20px 50px rgba(245,158,11,0.3)", borderColor: "rgba(245,158,11,0.5)" }}
-          transition={{ type: "spring", stiffness: 300, damping: 20 }}
-        >
-          <div className="absolute inset-0 opacity-10 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPjxyZWN0IHdpZHRoPSI0IiBoZWlnaHQ9IjQiIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSIvPjwvc3ZnPg==')] pointer-events-none mix-blend-overlay" />
-          
-          <div className="relative z-10">
-            <div className="flex items-start justify-between gap-3 mb-4">
-              <h2 className="text-3xl md:text-4xl font-black text-amber-300 tracking-wider">
-                {t('hub.ludo_title')}
-              </h2>
-              <span className="px-3 py-1 bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-full text-xs font-mono font-bold whitespace-nowrap flex-shrink-0">
-                {t('hub.ludo_tag')}
-              </span>
-            </div>
-            <p className="text-gray-300 text-sm mb-8 leading-relaxed">
-              {t('hub.ludo_desc')}
-            </p>
-          </div>
-          
-          <div className="relative z-10 space-y-5">
-            <motion.button 
-              onClick={createLudoRoom} 
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.96 }}
-              className="w-full py-4 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black tracking-widest uppercase rounded-xl overflow-hidden group shadow-[0_0_20px_rgba(245,158,11,0.4)] border border-amber-300 relative transition-all cursor-pointer text-sm"
-            >
-              <span className="relative z-10">{t('hub.ludo_create')}</span>
-              <div className="absolute inset-0 h-full w-0 bg-white/20 transition-all duration-500 ease-out group-hover:w-full" />
-            </motion.button>
-            
-            <div className="relative flex items-center py-1">
-              <div className="flex-grow border-t border-amber-900/50" />
-              <span className="flex-shrink-0 mx-3 text-amber-400/60 font-bold font-mono text-[11px] uppercase tracking-widest">
-                {t('hub.or_enter_code')}
-              </span>
-              <div className="flex-grow border-t border-amber-900/50" />
-            </div>
-
-            <form onSubmit={joinLudoRoom} className="flex gap-2 relative group">
-              <input 
-                type="text" 
-                placeholder={t('hub.enter_code_placeholder')} 
-                maxLength={4}
-                value={ludoCode}
-                onChange={(e) => setLudoCode(e.target.value)}
-                className="w-full bg-black/80 border-2 border-amber-900/40 text-center uppercase text-xl font-black rounded-xl p-3.5 focus:outline-none focus:border-amber-400 transition-all placeholder:text-gray-700 font-mono text-amber-400"
-              />
-              <motion.button 
-                type="submit" 
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="px-6 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl font-black tracking-wider transition-all shadow-md text-sm cursor-pointer"
-              >
-                {t('hub.join_btn')}
-              </motion.button>
-            </form>
-          </div>
-        </motion.div>
-
-        {/* Card do Jogo 5: WAVELENGTH */}
-        <motion.div 
-          className="relative bg-black/40 backdrop-blur-xl rounded-3xl p-8 border-2 border-white/10 flex flex-col justify-between overflow-hidden shadow-2xl md:col-span-2 md:max-w-xl md:mx-auto w-full"
-          whileHover={{ y: -8, boxShadow: "0 20px 50px rgba(6,182,212,0.4)", borderColor: "rgba(6,182,212,0.5)" }}
-          transition={{ type: "spring", stiffness: 300, damping: 20 }}
-        >
-          <div className="absolute inset-0 opacity-10 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPjxyZWN0IHdpZHRoPSI0IiBoZWlnaHQ9IjQiIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSIvPjwvc3ZnPg==')] pointer-events-none mix-blend-overlay" />
-          
-          <div className="relative z-10">
-            <div className="flex items-start justify-between gap-3 mb-4">
-              <h2 className="text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-sky-300 to-indigo-400 tracking-wider">
-                {t('hub.wavelength_title')}
-              </h2>
-              <span className="px-3 py-1 bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 rounded-full text-xs font-mono font-bold whitespace-nowrap flex-shrink-0">
-                {t('hub.wavelength_tag')}
-              </span>
-            </div>
-            <p className="text-gray-300 text-sm mb-8 leading-relaxed">
-              {t('hub.wavelength_desc')}
-            </p>
-          </div>
-          
-          <div className="relative z-10 space-y-5">
-            <motion.button 
-              onClick={createWavelengthRoom} 
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.96 }}
-              className="w-full py-4 bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-black tracking-widest uppercase rounded-xl overflow-hidden group shadow-[0_0_20px_rgba(6,182,212,0.4)] border border-cyan-300 relative transition-all cursor-pointer text-sm"
-            >
-              <span className="relative z-10">{t('hub.wavelength_create')}</span>
-              <div className="absolute inset-0 h-full w-0 bg-white/20 transition-all duration-500 ease-out group-hover:w-full" />
-            </motion.button>
-            
-            <div className="relative flex items-center py-1">
-              <div className="flex-grow border-t border-cyan-900/50" />
-              <span className="flex-shrink-0 mx-3 text-cyan-400/60 font-bold font-mono text-[11px] uppercase tracking-widest">
-                {t('hub.or_enter_code')}
-              </span>
-              <div className="flex-grow border-t border-cyan-900/50" />
-            </div>
-
-            <form onSubmit={joinWavelengthRoom} className="flex gap-2 relative group">
-              <input 
-                type="text" 
-                placeholder={t('hub.enter_code_placeholder')} 
-                maxLength={4}
-                value={wavelengthCode}
-                onChange={(e) => setWavelengthCode(e.target.value)}
-                className="w-full bg-black/80 border-2 border-cyan-900/40 text-center uppercase text-xl font-black rounded-xl p-3.5 focus:outline-none focus:border-cyan-400 transition-all placeholder:text-gray-700 font-mono text-cyan-300"
-              />
-              <motion.button 
-                type="submit" 
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="px-6 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl font-black tracking-wider transition-all shadow-md text-sm cursor-pointer"
-              >
-                {t('hub.join_btn')}
-              </motion.button>
-            </form>
-          </div>
-        </motion.div>
-
-      </main>
+        </section>
+      </div>
     </div>
   );
 }

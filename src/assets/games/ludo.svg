@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 360" width="100%" height="100%">
+  <defs>
+    <radialGradient id="ludo-bg" cx="50%" cy="50%" r="75%">
+      <stop offset="0%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </radialGradient>
+    <filter id="pawn-shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="2" dy="8" stdDeviation="8" flood-color="#000000" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+  <rect width="600" height="360" fill="url(#ludo-bg)"/>
+
+  <!-- Tilted Ludo Board in center -->
+  <g transform="translate(300, 180) rotate(-12)" filter="url(#pawn-shadow)">
+    <!-- Board Base plate -->
+    <rect x="-140" y="-140" width="280" height="280" rx="16" fill="#f8fafc" stroke="#cbd5e1" stroke-width="4"/>
+    
+    <!-- 4 Colored Home Corners -->
+    <!-- Red Base -->
+    <rect x="-130" y="-130" width="100" height="100" rx="10" fill="#ef4444"/>
+    <rect x="-115" y="-115" width="70" height="70" rx="6" fill="#ffffff" opacity="0.9"/>
+    <circle cx="-80" cy="-80" r="14" fill="#dc2626"/>
+
+    <!-- Green Base -->
+    <rect x="30" y="-130" width="100" height="100" rx="10" fill="#22c55e"/>
+    <rect x="45" y="-115" width="70" height="70" rx="6" fill="#ffffff" opacity="0.9"/>
+    <circle cx="80" cy="-80" r="14" fill="#16a34a"/>
+
+    <!-- Yellow Base -->
+    <rect x="30" y="30" width="100" height="100" rx="10" fill="#eab308"/>
+    <rect x="45" y="45" width="70" height="70" rx="6" fill="#ffffff" opacity="0.9"/>
+    <circle cx="80" cy="80" r="14" fill="#ca8a04"/>
+
+    <!-- Blue Base -->
+    <rect x="-130" y="30" width="100" height="100" rx="10" fill="#3b82f6"/>
+    <rect x="-115" y="45" width="70" height="70" rx="6" fill="#ffffff" opacity="0.9"/>
+    <circle cx="-80" cy="80" r="14" fill="#2563eb"/>
+
+    <!-- Center Triangle Zone -->
+    <polygon points="0,0 -30,-30 30,-30" fill="#22c55e"/>
+    <polygon points="0,0 30,-30 30,30" fill="#eab308"/>
+    <polygon points="0,0 30,30 -30,30" fill="#3b82f6"/>
+    <polygon points="0,0 -30,30 -30,-30" fill="#ef4444"/>
+  </g>
+
+  <!-- Big 3D Pawns Standing -->
+  <!-- Red Pawn -->
+  <g transform="translate(130, 210)" filter="url(#pawn-shadow)">
+    <ellipse cx="20" cy="85" rx="28" ry="10" fill="#000000" opacity="0.3"/>
+    <path d="M 0 80 Q 20 60 16 35 Q 20 25 24 35 Q 20 60 40 80 Z" fill="#ef4444"/>
+    <circle cx="20" cy="22" r="18" fill="#dc2626"/>
+    <circle cx="16" cy="18" r="5" fill="#fca5a5" opacity="0.8"/>
+  </g>
+
+  <!-- Blue Pawn -->
+  <g transform="translate(430, 200)" filter="url(#pawn-shadow)">
+    <ellipse cx="20" cy="85" rx="28" ry="10" fill="#000000" opacity="0.3"/>
+    <path d="M 0 80 Q 20 60 16 35 Q 20 25 24 35 Q 20 60 40 80 Z" fill="#3b82f6"/>
+    <circle cx="20" cy="22" r="18" fill="#2563eb"/>
+    <circle cx="16" cy="18" r="5" fill="#93c5fd" opacity="0.8"/>
+  </g>
+
+  <!-- 3D Dice Floating with a 6 -->
+  <g transform="translate(460, 90) rotate(16)" filter="url(#pawn-shadow)">
+    <!-- Top Face -->
+    <polygon points="40,10 75,25 40,40 5,25" fill="#f8fafc"/>
+    <circle cx="25" cy="22" r="2.5" fill="#334155"/>
+    <circle cx="40" cy="25" r="2.5" fill="#334155"/>
+    <circle cx="55" cy="28" r="2.5" fill="#334155"/>
+    <!-- Left Face (6 dots) -->
+    <polygon points="5,25 40,40 40,80 5,65" fill="#e2e8f0"/>
+    <circle cx="16" cy="42" r="3" fill="#dc2626"/>
+    <circle cx="16" cy="53" r="3" fill="#dc2626"/>
+    <circle cx="16" cy="64" r="3" fill="#dc2626"/>
+    <circle cx="29" cy="47" r="3" fill="#dc2626"/>
+    <circle cx="29" cy="58" r="3" fill="#dc2626"/>
+    <circle cx="29" cy="69" r="3" fill="#dc2626"/>
+    <!-- Right Face -->
+    <polygon points="40,40 75,25 75,65 40,80" fill="#cbd5e1"/>
+    <circle cx="58" cy="52" r="3" fill="#334155"/>
+  </g>
+</svg>

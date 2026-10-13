@@ -67,6 +67,7 @@ export interface CahState {
   roundWinner?: RoundWinnerInfo | null;
   actionLog: string[];
   discardsRemaining?: number;
+  language?: string;
 }
 
 export interface CahDisconnectNotice {

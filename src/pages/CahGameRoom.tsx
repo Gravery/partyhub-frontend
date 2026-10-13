@@ -4,7 +4,10 @@ import { useTranslation } from 'react-i18next';
 import { useCahStore, type CahWhiteCard, type AnonymousSubmission } from '../store/useCahStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LanguageSelector } from '../components/LanguageSelector';
+import { GameShell } from '../components/game/GameShell';
+import { GameHeader } from '../components/game/GameHeader';
+import { SideDrawer, type TabOption } from '../components/game/SideDrawer';
+import { Users, BookOpen, History as HistoryIcon } from 'lucide-react';
 
 // Renderiza a Carta Preta com suporte para "Escolha 1" ou "Escolha 2" e pré-visualização dinâmica
 function BlackCardView({
@@ -19,7 +22,7 @@ function BlackCardView({
   const { t } = useTranslation();
   let content: React.ReactNode;
   const safeText = text || '';
-  const validPreviews = previewTexts?.filter(Boolean) as string[] || [];
+  const validPreviews = (previewTexts?.filter(Boolean) as string[]) || [];
 
   if (safeText.includes('____')) {
     const parts = safeText.split('____');
@@ -34,11 +37,11 @@ function BlackCardView({
             <span key={idx}>
               {part}
               {answer ? (
-                <span className="bg-amber-400 text-slate-950 font-black px-2 py-0.5 rounded mx-1 shadow-md underline decoration-2 decoration-amber-600 inline-block">
+                <span className="bg-amber-400 text-slate-950 font-black px-1.5 py-0.5 rounded mx-1 shadow-sm underline decoration-2 decoration-amber-600 inline-block text-xs sm:text-sm">
                   {answer}
                 </span>
               ) : (
-                <span className="bg-white/20 text-gray-300 font-mono font-bold px-2 py-0.5 rounded mx-1 border border-dashed border-white/40 inline-block">
+                <span className="bg-white/20 text-gray-300 font-mono font-bold px-1.5 py-0.5 rounded mx-1 border border-dashed border-white/40 inline-block text-xs sm:text-sm">
                   ____
                 </span>
               )}
@@ -51,11 +54,11 @@ function BlackCardView({
     content = (
       <span>
         {safeText}
-        <div className="mt-3 space-y-1">
+        <div className="mt-2 space-y-1">
           {validPreviews.map((p, idx) => (
             <span
               key={idx}
-              className="bg-amber-400 text-slate-950 font-black px-2.5 py-1 rounded shadow-md block text-base"
+              className="bg-amber-400 text-slate-950 font-black px-2 py-0.5 rounded shadow-sm block text-xs sm:text-sm"
             >
               ➔ {validPreviews.length > 1 ? `[${idx + 1}] ` : ''}{p}
             </span>
@@ -67,20 +70,20 @@ function BlackCardView({
     content = (
       <span>
         {safeText}
-        <div className="mt-3 space-y-1.5">
+        <div className="mt-2 space-y-1">
           {Array.from({ length: pick }).map((_, idx) => {
             const p = previewTexts?.[idx];
             return p ? (
               <span
                 key={idx}
-                className="bg-amber-400 text-slate-950 font-black px-2.5 py-1 rounded shadow-md block text-base"
+                className="bg-amber-400 text-slate-950 font-black px-2 py-0.5 rounded shadow-sm block text-xs sm:text-sm"
               >
                 ➔ [{idx + 1}] {p}
               </span>
             ) : (
               <span
                 key={idx}
-                className="bg-white/10 text-gray-400 font-mono font-bold px-2.5 py-1 rounded border border-dashed border-white/30 block text-sm"
+                className="bg-white/10 text-gray-400 font-mono font-bold px-2 py-0.5 rounded border border-dashed border-white/30 block text-xs"
               >
                 ➔ [{idx + 1}] ____
               </span>
@@ -94,30 +97,26 @@ function BlackCardView({
   }
 
   return (
-    <motion.div
-      initial={{ scale: 0.95, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      className="relative w-full max-w-xl bg-black border-2 border-white/80 rounded-2xl p-6 md:p-8 shadow-[0_0_40px_rgba(255,255,255,0.15)] flex flex-col justify-between min-h-[220px]"
-    >
-      <div className="text-xl md:text-2xl font-black text-white leading-snug tracking-wide">
+    <div className="relative w-full max-w-lg bg-black border border-white/30 rounded-xl p-3 sm:p-4 shadow-xl flex flex-col justify-between max-h-[22dvh] sm:max-h-[25dvh] overflow-y-auto">
+      <div className="text-sm sm:text-base md:text-lg font-black text-white leading-snug tracking-tight">
         {content}
       </div>
 
-      <div className="flex justify-between items-center mt-6 pt-4 border-t border-white/20 text-xs font-mono font-bold tracking-widest text-gray-400 uppercase">
-        <span>{t('cah.game_title')}</span>
+      <div className="flex justify-between items-center mt-3 pt-2 border-t border-white/10 text-[10px] font-mono font-bold tracking-widest text-gray-400 uppercase shrink-0">
+        <span>Cards Against Humanity</span>
         {pick > 1 ? (
-          <span className="px-3 py-1 bg-amber-400 text-slate-950 font-black rounded-lg shadow-md animate-pulse">
+          <span className="px-2 py-0.5 bg-amber-400 text-slate-950 font-black rounded text-[10px]">
             {t('cah.pick_multi', { count: pick })}
           </span>
         ) : (
-          <span className="text-amber-400 font-bold">{t('cah.pick_one')}</span>
+          <span className="text-amber-400">{t('cah.pick_one')}</span>
         )}
       </div>
-    </motion.div>
+    </div>
   );
 }
 
-// Renderiza uma Carta Branca (usada na mão do jogador ou na mesa do Czar)
+// Renderiza uma Carta Branca (usada na mão do jogador ou na mesa)
 function WhiteCardView({
   card,
   isSelected,
@@ -143,44 +142,44 @@ function WhiteCardView({
 
   return (
     <motion.div
-      whileHover={!disabled ? { y: -8, scale: 1.03 } : {}}
-      whileTap={!disabled ? { scale: 0.97 } : {}}
+      whileHover={!disabled ? { y: -4, scale: 1.02 } : {}}
+      whileTap={!disabled ? { scale: 0.98 } : {}}
       onMouseEnter={() => onHover && onHover(true)}
       onMouseLeave={() => onHover && onHover(false)}
       onClick={!disabled ? onClick : undefined}
-      className={`relative w-44 h-60 md:w-48 md:h-64 rounded-2xl p-4 flex flex-col justify-between cursor-pointer select-none transition-all duration-200 border-2 shadow-xl ${
+      className={`relative w-[clamp(100px,13vw,140px)] h-[clamp(150px,22dvh,205px)] aspect-[2/3] rounded-xl p-2.5 flex flex-col justify-between cursor-pointer select-none transition-all duration-150 border shadow-md shrink-0 ${
         isWinner
-          ? 'bg-amber-400 text-slate-950 border-white ring-4 ring-amber-300 shadow-[0_0_30px_rgba(251,191,36,0.6)] scale-105 z-20'
+          ? 'bg-amber-400 text-slate-950 border-white ring-2 ring-amber-300 shadow-[0_0_20px_rgba(251,191,36,0.5)] z-20'
           : isSelected
-          ? 'bg-white text-slate-950 border-purple-500 ring-4 ring-purple-400 shadow-[0_0_25px_rgba(168,85,247,0.5)] scale-105 z-10'
+          ? 'bg-white text-slate-950 border-purple-500 ring-2 ring-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.4)] z-10'
           : disabled
-          ? 'bg-gray-100 text-gray-400 border-gray-300 cursor-not-allowed opacity-60'
-          : 'bg-white text-slate-950 border-gray-300 hover:border-gray-500 hover:shadow-2xl'
+          ? 'bg-zinc-200 text-zinc-400 border-zinc-300 cursor-not-allowed opacity-60'
+          : 'bg-white text-slate-950 border-zinc-200 hover:border-zinc-400 hover:shadow-lg'
       }`}
     >
-      <div className="font-bold text-sm md:text-base leading-snug tracking-tight text-slate-900">
+      <div className="font-bold text-[11px] sm:text-xs leading-snug tracking-tight text-slate-950 overflow-y-auto overflow-x-hidden break-words max-h-[85%] pr-0.5 custom-scrollbar">
         {cardText}
       </div>
 
-      <div className="flex justify-between items-end pt-3 border-t border-gray-200/80">
-        <span className="text-[9px] font-black uppercase tracking-wider text-gray-500 font-mono">
-          PartyHub CAH
+      <div className="flex justify-between items-end pt-1 border-t border-gray-200 shrink-0">
+        <span className="text-[8px] font-black uppercase tracking-wider text-gray-500 font-mono">
+          PartyHub
         </span>
         {authorName && (
-          <span className="px-2 py-0.5 bg-black text-white text-[10px] font-bold uppercase rounded-md shadow-sm">
+          <span className="px-1.5 py-0.2 bg-black text-white text-[8px] font-bold uppercase rounded">
             {authorName}
           </span>
         )}
       </div>
 
       {selectionBadge && (
-        <div className="absolute -top-3 -left-3 bg-purple-600 text-white font-black text-xs px-2.5 py-1 rounded-full shadow-lg border-2 border-white flex items-center gap-1 z-30">
+        <div className="absolute -top-2 -left-2 bg-purple-600 text-white font-black text-[10px] px-1.5 py-0.5 rounded-full shadow border border-white flex items-center gap-1 z-30">
           <span>{selectionBadge}</span>
         </div>
       )}
 
       {isWinner && (
-        <div className="absolute -top-3 -right-3 bg-amber-500 text-black font-black text-xs px-2.5 py-1 rounded-full shadow-lg border-2 border-white flex items-center gap-1 z-30">
+        <div className="absolute -top-2 -right-2 bg-amber-500 text-black font-black text-[10px] px-1.5 py-0.5 rounded-full shadow border border-white flex items-center gap-0.5 z-30">
           <span>🏆</span> {t('cah.card_winner_badge')}
         </div>
       )}
@@ -188,7 +187,7 @@ function WhiteCardView({
   );
 }
 
-// Renderiza uma Carta com Animação 3D de Virar (Flip) e Efeito de Impacto
+// Renderiza uma Carta com Animação 3D de Virar (Flip)
 function FlippableCard({
   card,
   isRevealed,
@@ -216,7 +215,7 @@ function FlippableCard({
   useEffect(() => {
     if (isRevealed) {
       setJustRevealed(true);
-      const timer = setTimeout(() => setJustRevealed(false), 900);
+      const timer = setTimeout(() => setJustRevealed(false), 800);
       return () => clearTimeout(timer);
     }
   }, [isRevealed]);
@@ -226,20 +225,19 @@ function FlippableCard({
 
   return (
     <div
-      style={{ perspective: 1200 }}
-      className="relative w-44 h-60 md:w-48 md:h-64 select-none"
+      style={{ perspective: 1000 }}
+      className="relative w-[clamp(100px,13vw,140px)] h-[clamp(150px,22dvh,205px)] aspect-[2/3] select-none shrink-0"
       onMouseEnter={() => isRevealed && onHover && onHover(true)}
       onMouseLeave={() => isRevealed && onHover && onHover(false)}
     >
-      {/* Efeito de Impacto / Shockwave ao Virar a Carta */}
       <AnimatePresence>
         {justRevealed && (
           <motion.div
-            initial={{ opacity: 1, scale: 0.85 }}
-            animate={{ opacity: 0, scale: 1.45 }}
+            initial={{ opacity: 1, scale: 0.9 }}
+            animate={{ opacity: 0, scale: 1.3 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.75, ease: 'easeOut' }}
-            className="absolute -inset-4 rounded-3xl bg-amber-400/40 blur-xl pointer-events-none z-30"
+            transition={{ duration: 0.6, ease: 'easeOut' }}
+            className="absolute -inset-2 rounded-2xl bg-amber-400/30 blur-md pointer-events-none z-30"
           />
         )}
       </AnimatePresence>
@@ -247,100 +245,71 @@ function FlippableCard({
       <motion.div
         animate={{
           rotateY: isRevealed ? 0 : 180,
-          scale: justRevealed ? [1, 1.14, 1] : 1,
+          scale: justRevealed ? [1, 1.08, 1] : 1,
         }}
-        transition={{
-          rotateY: { duration: 0.65, type: 'spring', stiffness: 220, damping: 20 },
-          scale: { duration: 0.55, ease: 'easeOut' },
-        }}
+        transition={{ duration: 0.5, ease: 'easeOut' }}
         style={{ transformStyle: 'preserve-3d' }}
-        onClick={onCardClick}
         className={`w-full h-full relative cursor-pointer ${
-          canClickToReveal
-            ? 'hover:scale-105 active:scale-95'
-            : canClickToSelect
-            ? 'hover:-translate-y-2'
-            : ''
-        } transition-transform duration-200`}
+          isSelected ? 'ring-2 ring-purple-400 rounded-xl' : ''
+        }`}
+        onClick={onCardClick}
       >
-        {/* FRENTE DA CARTA (REVELADA) */}
+        {/* Face Frontal (Carta Revelada) */}
         <div
-          style={{
-            backfaceVisibility: 'hidden',
-            WebkitBackfaceVisibility: 'hidden',
-          }}
-          className={`absolute inset-0 w-full h-full rounded-2xl p-4 flex flex-col justify-between border-2 shadow-xl bg-white text-slate-950 transition-all duration-200 ${
+          style={{ backfaceVisibility: 'hidden' }}
+          className={`absolute inset-0 w-full h-full rounded-xl p-2.5 flex flex-col justify-between border shadow-md bg-white text-slate-950 ${
             isSelected
-              ? 'border-purple-500 ring-4 ring-purple-400 shadow-[0_0_25px_rgba(168,85,247,0.5)] scale-105 z-20'
-              : 'border-gray-300 hover:border-amber-400 hover:shadow-2xl'
+              ? 'border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.35)]'
+              : 'border-zinc-200'
           }`}
         >
-          <div className="font-bold text-sm md:text-base leading-snug tracking-tight text-slate-900">
+          <div className="font-bold text-[11px] sm:text-xs leading-snug tracking-tight text-slate-950 overflow-y-auto overflow-x-hidden break-words max-h-[85%] custom-scrollbar">
             {card?.text || ''}
           </div>
 
-          <div className="flex justify-between items-end pt-3 border-t border-gray-200/80">
-            <span className="text-[9px] font-black uppercase tracking-wider text-gray-500 font-mono">
-              PartyHub CAH
+          <div className="flex justify-between items-end pt-1 border-t border-gray-200 shrink-0">
+            <span className="text-[8px] font-black uppercase tracking-wider text-gray-500 font-mono">
+              PartyHub
             </span>
             {cardsCount > 1 && (
-              <span className="px-2 py-0.5 bg-purple-600 text-white text-[10px] font-black rounded-md shadow-sm">
-                [{cardIndex + 1}/{cardsCount}]
+              <span className="px-1 py-0.2 bg-purple-100 text-purple-800 text-[8px] font-black rounded">
+                {cardIndex + 1}/{cardsCount}
               </span>
             )}
           </div>
 
-          {cardsCount > 1 && (
-            <div className="absolute -top-3 -left-3 bg-purple-600 text-white font-black text-xs px-2.5 py-1 rounded-full shadow-lg border-2 border-white flex items-center gap-1 z-30">
-              <span>{`[${cardIndex + 1}]`}</span>
+          {canClickToSelect && isSelected && (
+            <div className="absolute -top-2 -right-2 bg-purple-600 text-white font-black text-[9px] px-1.5 py-0.5 rounded-full shadow border border-white z-20">
+              ✓
             </div>
           )}
         </div>
 
-        {/* VERSO DA CARTA (VIRADA PARA BAIXO) */}
+        {/* Verso da Carta (Oculta) */}
         <div
           style={{
             backfaceVisibility: 'hidden',
-            WebkitBackfaceVisibility: 'hidden',
             transform: 'rotateY(180deg)',
           }}
-          className={`absolute inset-0 w-full h-full rounded-2xl p-3 flex flex-col justify-between items-center text-center border-2 shadow-2xl bg-gradient-to-br from-zinc-900 via-neutral-900 to-black ${
+          className={`absolute inset-0 w-full h-full rounded-xl p-2.5 flex flex-col justify-between border-2 shadow-md bg-zinc-900 border-zinc-700 text-white ${
             canClickToReveal
-              ? 'border-amber-400/80 shadow-[0_0_30px_rgba(251,191,36,0.35)] hover:border-amber-300 hover:shadow-[0_0_40px_rgba(251,191,36,0.6)]'
-              : 'border-white/20'
+              ? 'hover:border-amber-400 hover:shadow-[0_0_15px_rgba(251,191,36,0.3)]'
+              : ''
           }`}
         >
-          {/* Moldura interna decorativa */}
-          <div className="w-full h-full border border-dashed border-white/20 rounded-xl p-3 flex flex-col justify-between items-center relative overflow-hidden">
-            {/* Padrão geométrico suave no fundo */}
-            <div className="absolute inset-0 opacity-5 bg-[repeating-linear-gradient(45deg,#fff,#fff_2px,transparent_2px,transparent_8px)] pointer-events-none" />
+          <div className="flex flex-col items-center justify-center flex-1 text-center">
+            <span className="text-xl sm:text-2xl mb-1">🃏</span>
+            <span className="font-black text-[10px] tracking-widest text-zinc-300 uppercase">
+              PartyHub
+            </span>
+          </div>
 
-            <div className="text-[10px] font-black uppercase tracking-widest text-gray-400 font-mono z-10">
-              {t('cah.deck_back_top')}
-            </div>
-
-            {/* Centro: Ação ou Estado */}
-            <div className="flex flex-col items-center gap-2 z-10">
-              <div className="text-3xl filter drop-shadow">🎭</div>
-              {canClickToReveal ? (
-                <div className="px-3 py-1.5 bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl shadow-[0_0_20px_rgba(251,191,36,0.7)] animate-pulse border border-white">
-                  {t('cah.reveal_action_badge')}
-                </div>
-              ) : (
-                <div className="text-gray-400 font-mono text-[11px] font-bold uppercase tracking-wider bg-white/5 px-2.5 py-1 rounded-lg border border-white/10">
-                  {t('cah.hidden_action_badge')}
-                </div>
-              )}
-            </div>
-
-            <div className="text-[10px] font-black uppercase tracking-widest text-gray-400 font-mono z-10">
-              {t('cah.deck_back_bottom')}
-            </div>
-
-            {cardsCount > 1 && (
-              <div className="absolute top-2 right-2 bg-white/20 text-gray-200 font-mono font-black text-[9px] px-1.5 py-0.5 rounded">
-                [{cardIndex + 1}/{cardsCount}]
-              </div>
+          <div className="flex justify-between items-center pt-1 border-t border-zinc-800 text-[8px] font-mono text-zinc-500 shrink-0">
+            <span>CAH</span>
+            {canClickToReveal && (
+              <span className="text-amber-400 font-bold animate-pulse">
+                {t('cah.czar_click_reveal')}
+              </span>
             )}
           </div>
         </div>
@@ -350,53 +319,42 @@ function FlippableCard({
 }
 
 export function CahGameRoom() {
-  const { t } = useTranslation();
   const { roomId } = useParams<{ roomId: string }>();
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
   const { session } = useAuthStore();
+
   const {
-    connect,
-    disconnect,
-    manualReconnect,
-    isConnected,
+    gameState,
     isReconnecting,
     reconnectAttempt,
-    gameState,
-    errorMsg,
-    clearError,
     roundWinnerToast,
-    clearWinnerToast,
-    toggleReady,
+    connect,
+    disconnect,
+    sendMessage,
     setOptions,
+    toggleReady,
     startGame,
     submitAnswer,
-    discardCards,
     revealSubmission,
     selectWinner,
     nextRound,
     restartGame,
-    disconnectNotice,
+    discardCards,
+    clearWinnerToast,
   } = useCahStore();
 
-  const [copied, setCopied] = useState(false);
+  const requiredPick = gameState?.currentBlackCard?.pick || 1;
+  const discardsRemaining = gameState?.discardsRemaining ?? 2;
+
   const [selectedCardIds, setSelectedCardIds] = useState<string[]>([]);
-  const [isDiscardMode, setIsDiscardMode] = useState<boolean>(false);
+  const [isDiscardMode, setIsDiscardMode] = useState(false);
   const [selectedDiscardIds, setSelectedDiscardIds] = useState<string[]>([]);
   const [hoveredCardText, setHoveredCardText] = useState<string | null>(null);
   const [czarSelectedSubId, setCzarSelectedSubId] = useState<string | null>(null);
   const [czarHoveredTexts, setCzarHoveredTexts] = useState<string[] | null>(null);
-  const [showWinnerModal, setShowWinnerModal] = useState<boolean>(true);
-
-  const requiredPick = gameState?.currentBlackCard?.pick || 1;
-  const discardsRemaining = gameState?.discardsRemaining !== undefined ? gameState.discardsRemaining : 2;
-
-  const handleCopyInvite = () => {
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(window.location.href);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
+  const [drawerTab, setDrawerTab] = useState<'players' | 'history' | 'rules' | null>(null);
+  const [showWinnerModal, setShowWinnerModal] = useState(false);
 
   useEffect(() => {
     if (!session?.access_token || !roomId) {
@@ -407,7 +365,13 @@ export function CahGameRoom() {
     return () => disconnect();
   }, [roomId, session]);
 
-  // Limpa seleção local quando o estado avança para outra rodada e reabre o modal de vencedor
+  // Sincroniza idioma das cartas com o selecionado na interface
+  useEffect(() => {
+    if (gameState?.state === 'LOBBY') {
+      sendMessage('SET_LANGUAGE', { language: i18n.language?.startsWith('pt') ? 'pt' : 'en' });
+    }
+  }, [i18n.language, gameState?.state]);
+
   useEffect(() => {
     setSelectedCardIds([]);
     setIsDiscardMode(false);
@@ -420,16 +384,6 @@ export function CahGameRoom() {
       setShowWinnerModal(true);
     }
   }, [gameState?.roundNumber, gameState?.state]);
-
-  // Auto-dispensa do toast de vencedor da rodada após 6 segundos
-  useEffect(() => {
-    if (roundWinnerToast) {
-      const timer = setTimeout(() => {
-        clearWinnerToast();
-      }, 6000);
-      return () => clearTimeout(timer);
-    }
-  }, [roundWinnerToast]);
 
   const handleCardClick = (cardId: string) => {
     if (isDiscardMode) {
@@ -454,26 +408,18 @@ export function CahGameRoom() {
       if (selectedCardIds.length < requiredPick) {
         setSelectedCardIds([...selectedCardIds, cardId]);
       } else {
-        // Se já atingiu o limite de cartas necessárias, substitui a última escolha
         setSelectedCardIds([...selectedCardIds.slice(0, requiredPick - 1), cardId]);
       }
     }
   };
 
-  if (!isConnected && !gameState && !isReconnecting) {
-    return (
-      <div className="flex flex-col h-screen items-center justify-center bg-[#0a0a0a] text-white gap-4 font-sans">
-        <div className="animate-spin text-4xl">🃏</div>
-        <p className="font-bold text-lg">{t('cah.entering_room', { roomId })}</p>
-      </div>
-    );
-  }
-
   if (!gameState) {
     return (
-      <div className="flex flex-col h-screen items-center justify-center bg-[#0a0a0a] text-white gap-4 font-sans">
-        <div className="animate-spin text-4xl">⏳</div>
-        <p className="font-bold text-lg">{t('cah.loading_table')}</p>
+      <div className="h-[100dvh] flex flex-col items-center justify-center bg-[#0a0a0a] text-white gap-4 font-sans">
+        <div className="animate-spin text-4xl">🃏</div>
+        <p className="font-bold text-sm tracking-wider uppercase text-zinc-400">
+          {isReconnecting ? t('common.reconnecting', { attempt: reconnectAttempt }) : t('cah.loading_table')}
+        </p>
       </div>
     );
   }
@@ -482,10 +428,9 @@ export function CahGameRoom() {
   const isLeader = gameState.players[0] === myId;
   const isCzar = gameState.isCzar;
   const myHand = gameState.myHand || [];
+  const totalPlayers = gameState.players.length;
 
-  // Determina os textos a preencher nas lacunas da carta preta
   let activePreviewTexts: (string | null | undefined)[] = [];
-
   if (gameState.state === 'ROUND_REVEAL') {
     if (gameState.roundWinner?.cards && gameState.roundWinner.cards.length > 0) {
       activePreviewTexts = gameState.roundWinner.cards.map((c) => c.text);
@@ -493,8 +438,6 @@ export function CahGameRoom() {
       activePreviewTexts = roundWinnerToast.cards.map((c) => c.text);
     } else if (gameState.roundWinner?.card?.text) {
       activePreviewTexts = [gameState.roundWinner.card.text];
-    } else if (roundWinnerToast?.card?.text) {
-      activePreviewTexts = [roundWinnerToast.card.text];
     }
   } else if (gameState.state === 'JUDGING') {
     if (czarHoveredTexts && czarHoveredTexts.length > 0) {
@@ -525,445 +468,227 @@ export function CahGameRoom() {
     }
   }
 
-  const roundWinnerInfo = gameState.roundWinner || roundWinnerToast;
+  const drawerTabs: TabOption[] = [
+    { id: 'players', label: `Placar (${totalPlayers})`, icon: <Users size={14} /> },
+    { id: 'history', label: 'Histórico', icon: <HistoryIcon size={14} /> },
+    { id: 'rules', label: 'Regras', icon: <BookOpen size={14} /> },
+  ];
 
   return (
-    <div className="relative min-h-screen bg-[#0a0a0a] text-white p-4 md:p-8 font-sans overflow-x-hidden flex flex-col justify-between select-none">
-      <div className="crt-overlay" />
-
-      {/* Banner de Reconexão do próprio jogador */}
-      {isReconnecting && (
-        <div className="fixed top-0 left-0 right-0 bg-amber-950/95 border-b border-amber-500/50 p-3 z-50 flex items-center justify-center gap-4 text-amber-200 text-sm shadow-xl backdrop-blur-md">
-          <span className="animate-spin text-base">⏳</span>
-          <span>{t('common.reconnecting', { attempt: reconnectAttempt })}</span>
-          <button
-            onClick={manualReconnect}
-            className="px-3 py-1 bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs uppercase rounded transition-all"
-          >
-            {t('common.reconnect_now')}
-          </button>
-        </div>
-      )}
-
-      {/* Banner de Espera quando outro jogador desconecta */}
-      {disconnectNotice && (
-        <div className="fixed top-14 left-1/2 -translate-x-1/2 bg-red-950/95 border border-red-500/70 p-4 rounded-xl z-50 flex items-center gap-4 text-red-200 text-sm shadow-2xl backdrop-blur-md max-w-lg">
-          <span className="text-2xl animate-pulse">⚠️</span>
-          <div>
-            <p className="font-bold text-white">
-              {t('common.player_disconnected_wait', { name: disconnectNotice.userName })}
-            </p>
-            <p className="text-xs text-red-300 mt-0.5">
-              {t('common.match_paused')}
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Alerta de Erro */}
-      {errorMsg && (
-        <div
-          className="fixed top-4 right-4 bg-red-950/95 border border-red-500 text-red-200 p-4 rounded-xl shadow-2xl z-50 cursor-pointer font-medium max-w-md flex items-center justify-between gap-4"
-          onClick={clearError}
-        >
-          <span><strong>{t('common.attention')}:</strong> {errorMsg}</span>
-          <span className="text-red-400 text-xs underline">{t('common.close')}</span>
-        </div>
-      )}
-
-      {/* MODAL SINCRONIZADO E PERSISTENTE DO VENCEDOR DA RODADA */}
-      <AnimatePresence>
-        {gameState.state === 'ROUND_REVEAL' && roundWinnerInfo && showWinnerModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 30 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 30 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 280 }}
-              className="relative w-full max-w-3xl bg-gradient-to-b from-zinc-900 via-neutral-950 to-black border-2 border-amber-400 rounded-3xl p-6 md:p-8 shadow-[0_0_80px_rgba(251,191,36,0.45)] my-auto flex flex-col items-center text-center overflow-hidden"
-            >
-              {/* Efeitos de Iluminação de Fundo */}
-              <div className="absolute -top-24 -left-24 w-52 h-52 bg-amber-500/20 rounded-full blur-3xl pointer-events-none" />
-              <div className="absolute -bottom-24 -right-24 w-52 h-52 bg-amber-500/20 rounded-full blur-3xl pointer-events-none" />
-
-              {/* Botão Minimizar para Ver a Mesa Completa */}
-              <button
-                onClick={() => setShowWinnerModal(false)}
-                className="absolute top-4 right-4 text-gray-400 hover:text-white px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition text-xs font-mono uppercase tracking-wider flex items-center gap-1.5 cursor-pointer"
-                title={t('cah.view_table')}
-              >
-                <span>{t('cah.view_table')}</span>
-                <span className="text-sm font-black">✕</span>
-              </button>
-
-              {/* Título & Vencedor */}
-              <div className="flex flex-col items-center gap-1 mb-6">
-                <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-amber-400/10 border border-amber-400/40 text-amber-300 text-xs uppercase tracking-widest font-black">
-                  <span>🏆</span> {t('cah.round_winner_badge')}
-                </div>
-                <h2 className="text-3xl md:text-4xl font-black text-white mt-1 tracking-tight">
-                  <span className="text-amber-400">{roundWinnerInfo.playerName}</span> {t('cah.round_winner_title', { name: '' }).trim()}
-                </h2>
-                <p className="text-sm text-amber-200/90 font-medium">
-                  {t('cah.round_winner_points', { points: roundWinnerInfo.pointsWon || (roundWinnerInfo.cards?.length || 1) })}
-                </p>
+    <GameShell
+      themeClass="bg-zinc-950 text-white"
+      header={
+        <GameHeader
+          gameTitle="CARDS AGAINST HUMANITY"
+          gameBadge="HUMOR"
+          roomCode={roomId || ''}
+          playerCount={totalPlayers}
+          accentColor="text-zinc-100"
+          onExit={() => navigate('/hub')}
+          onTogglePlayers={() => setDrawerTab('players')}
+          onToggleLog={() => setDrawerTab('history')}
+          onToggleRules={() => setDrawerTab('rules')}
+          centerContent={
+            gameState.state !== 'LOBBY' && gameState.state !== 'GAME_OVER' ? (
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-bold flex items-center gap-1">
+                  <span>👑 Czar:</span>
+                  <span className="truncate max-w-[100px]">{gameState.czarName || '...'}</span>
+                </span>
+                <span className="px-2 py-0.5 rounded-full bg-white/10 text-zinc-300 text-xs font-mono font-bold hidden sm:inline">
+                  Meta: {gameState.scoreToWin} pts
+                </span>
               </div>
-
-              {/* Pré-visualização da Combinação Vencedora */}
-              <div className="w-full flex flex-col items-center gap-4 mb-6">
-                <BlackCardView
-                  text={roundWinnerInfo.blackCard?.text || gameState.currentBlackCard?.text}
-                  pick={roundWinnerInfo.cards?.length || 1}
-                  previewTexts={
-                    roundWinnerInfo.cards && roundWinnerInfo.cards.length > 0
-                      ? roundWinnerInfo.cards.map((c) => c.text)
-                      : [roundWinnerInfo.card?.text || roundWinnerInfo.winningCard?.text || '']
-                  }
-                />
-
-                {/* Cartas Brancas Vencedoras */}
-                <div className="flex flex-wrap gap-3 justify-center mt-2">
-                  {(roundWinnerInfo.cards && roundWinnerInfo.cards.length > 0
-                    ? roundWinnerInfo.cards
-                    : [roundWinnerInfo.card || roundWinnerInfo.winningCard]
-                  ).map((c, i) =>
-                    c ? (
-                      <WhiteCardView
-                        key={c.id || i}
-                        card={c}
-                        isWinner={true}
-                        selectionBadge={
-                          roundWinnerInfo.cards && roundWinnerInfo.cards.length > 1
-                            ? `[${i + 1}]`
-                            : undefined
-                        }
-                        authorName={roundWinnerInfo.playerName}
-                        disabled
-                      />
-                    ) : null
+            ) : null
+          }
+        />
+      }
+      footer={
+        /* Pinned Player Hand / Czar Dock */
+        gameState.state === 'SELECTING_ANSWERS' ? (
+          <div className="w-full bg-zinc-900/95 border-t border-white/10 px-2 py-2 backdrop-blur-md">
+            <div className="max-w-5xl mx-auto flex flex-col gap-1.5">
+              {/* Hand controls bar */}
+              <div className="flex items-center justify-between px-2 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-zinc-300 uppercase text-[11px]">Sua Mão</span>
+                  {isCzar ? (
+                    <span className="text-amber-400 font-bold italic text-[11px]">Você é o Czar!</span>
+                  ) : isDiscardMode ? (
+                    <span className="px-2 py-0.5 bg-rose-950 border border-rose-500/50 rounded-full font-mono text-[10px] text-rose-300">
+                      🗑️ Descartando ({selectedDiscardIds.length}/{discardsRemaining})
+                    </span>
+                  ) : (
+                    <span className="px-2 py-0.5 bg-white/10 rounded-full font-mono text-[10px] text-amber-300">
+                      {selectedCardIds.length}/{requiredPick} cartas
+                    </span>
                   )}
                 </div>
-              </div>
 
-              {/* Ação Única para Avançar para a Próxima Rodada */}
-              <div className="w-full flex flex-col items-center gap-3 pt-4 border-t border-white/10">
-                {isCzar || isLeader ? (
-                  <motion.button
-                    whileHover={{ scale: 1.03 }}
-                    whileTap={{ scale: 0.97 }}
-                    onClick={nextRound}
-                    className="px-10 py-4 bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black text-base md:text-lg uppercase tracking-widest rounded-2xl shadow-[0_0_35px_rgba(251,191,36,0.6)] border-2 border-white transition-all flex items-center gap-3 cursor-pointer"
-                  >
-                    <span>{t('cah.advance_next_round')}</span>
-                    <span className="text-2xl font-black">➔</span>
-                  </motion.button>
-                ) : (
-                  <div className="px-6 py-3 bg-amber-950/50 border border-amber-500/40 rounded-2xl text-amber-300 font-medium text-sm flex items-center gap-2">
-                    <span className="animate-spin text-base">⏳</span>
-                    <span>
-                      {t('cah.waiting_czar_advance', { name: gameState.czarName ? `(${gameState.czarName})` : '' })}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          </div>
-        )}
-
-        {/* Botão Flutuante de Reabertura (quando o jogador minimiza para ver a mesa) */}
-        {gameState.state === 'ROUND_REVEAL' && roundWinnerInfo && !showWinnerModal && (
-          <motion.button
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            onClick={() => setShowWinnerModal(true)}
-            className="fixed top-20 left-1/2 -translate-x-1/2 z-40 px-5 py-2.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs uppercase tracking-wider rounded-full shadow-[0_0_30px_rgba(251,191,36,0.6)] border-2 border-white flex items-center gap-2 cursor-pointer transition active:scale-95"
-          >
-            <span>🏆</span>
-            <span>{t('cah.view_winner', { name: roundWinnerInfo.playerName })}</span>
-          </motion.button>
-        )}
-      </AnimatePresence>
-
-      {/* Cabeçalho */}
-      <header className="relative z-10 mb-6 flex flex-col md:flex-row justify-between items-center border-b border-white/10 pb-4 gap-4">
-        <div className="flex flex-col md:flex-row items-center md:items-baseline gap-4">
-          <h1 className="text-3xl md:text-4xl font-black tracking-widest text-white uppercase">
-            {t('cah.game_title')}
-          </h1>
-          <div className="flex items-center gap-3 flex-wrap font-mono text-sm uppercase tracking-wider">
-            <span className="text-gray-400">
-              {t('common.room')}: <span className="text-amber-400 font-bold">{roomId}</span>
-            </span>
-            <button
-              onClick={handleCopyInvite}
-              className="px-2.5 py-1 bg-white/10 hover:bg-white/20 border border-white/20 text-gray-200 rounded font-mono text-xs uppercase tracking-wider transition-all"
-            >
-              {copied ? t('common.copied') : t('common.copy_invite')}
-            </button>
-          </div>
-        </div>
-
-        {/* Status de Rodada & Botão Sair */}
-        <div className="flex items-center gap-4 flex-wrap justify-center">
-          {gameState.state !== 'LOBBY' && (
-            <div className="flex items-center gap-3">
-              <span className="px-3 py-1.5 bg-white/10 border border-white/20 rounded-xl font-bold text-xs uppercase tracking-wider text-gray-200">
-                {t('common.round')} {gameState.roundNumber}
-              </span>
-              <span className="px-3 py-1.5 bg-amber-500/20 border border-amber-500/40 text-amber-300 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center gap-1.5">
-                <span>{t('cah.czar_label')}</span>
-                <span className="font-black text-white">{gameState.czarName || 'Czar'}</span>
-              </span>
-            </div>
-          )}
-
-          <LanguageSelector />
-
-          <button
-            onClick={() => {
-              disconnect();
-              navigate('/hub');
-            }}
-            className="px-4 py-2 bg-red-950/40 hover:bg-red-900/80 border border-red-500/50 text-red-400 font-semibold text-xs uppercase tracking-wider rounded-lg transition-all"
-          >
-            {t('common.exit_room')}
-          </button>
-        </div>
-      </header>
-
-      {/* CONTEÚDO PRINCIPAL */}
-      <main className="relative z-10 flex-grow flex flex-col justify-between">
-        
-        {/* 1. FASE DE LOBBY */}
-        {gameState.state === 'LOBBY' && (
-          <div className="max-w-2xl mx-auto my-auto text-center space-y-6 w-full py-4">
-            <div>
-              <h2 className="text-3xl font-black text-white tracking-wide mb-1">
-                {t('cah.lobby_title')}
-              </h2>
-              <p className="text-gray-400 text-sm">
-                {t('cah.lobby_desc')}
-              </p>
-            </div>
-
-            {/* Configuração de Meta de Pontuação */}
-            <div className="bg-black/60 border border-white/10 rounded-2xl p-5 text-left shadow-xl">
-              <div className="flex justify-between items-center mb-3">
-                <span className="text-xs font-bold text-gray-300 uppercase tracking-widest">
-                  {t('cah.score_goal')}
-                </span>
-                {isLeader && (
-                  <span className="text-[11px] text-amber-400 font-mono">{t('cah.leader_badge')}</span>
-                )}
-              </div>
-
-              <div className="flex gap-3">
-                {[5, 7, 10].map((pts) => {
-                  const isSelected = gameState.scoreToWin === pts;
-                  return (
-                    <button
-                      key={pts}
-                      disabled={!isLeader}
-                      onClick={() => isLeader && setOptions(pts)}
-                      className={`flex-1 py-3 rounded-xl font-black text-sm uppercase tracking-wider border-2 transition-all ${
-                        isSelected
-                          ? 'bg-amber-400 text-slate-950 border-white shadow-lg'
-                          : 'bg-black/40 text-gray-400 border-white/10 hover:border-white/30'
-                      } ${!isLeader ? 'cursor-default' : 'cursor-pointer active:scale-95'}`}
-                    >
-                      {t('cah.pts_suffix', { count: pts })}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Lista de Jogadores */}
-            <div className="bg-black/60 border border-white/10 rounded-2xl p-5 text-left space-y-3 shadow-xl">
-              <span className="text-xs font-bold text-gray-300 uppercase tracking-widest block mb-1">
-                {t('cah.players_in_room', { current: gameState.players.length })}
-              </span>
-
-              {gameState.players.map((pid) => {
-                const isReady = gameState.playerReady?.[pid];
-                const pName = gameState.playerNames?.[pid] || pid.substring(0, 6);
-                const isMe = pid === myId;
-
-                return (
-                  <div
-                    key={pid}
-                    className="flex justify-between items-center bg-black/40 p-3.5 rounded-xl border border-white/5"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="w-2.5 h-2.5 rounded-full bg-green-400" />
-                      <span className={`font-medium ${isMe ? 'text-amber-400 font-bold' : 'text-gray-200'}`}>
-                        {pName} {isMe && t('common.you')}
-                      </span>
-                    </div>
-
-                    {isMe ? (
-                      <button
-                        onClick={toggleReady}
-                        className={`px-5 py-2 font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md active:scale-95 flex items-center gap-2 ${
-                          isReady
-                            ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-500/30 border border-emerald-400'
-                            : 'bg-gray-800 hover:bg-gray-700 text-gray-200 border border-gray-600'
-                        }`}
-                      >
-                        <span>{isReady ? '✓' : '👍'}</span>
-                        <span>{isReady ? t('cah.ready') : t('cah.not_ready')}</span>
-                      </button>
+                {!isCzar && !gameState.hasSubmitted && (
+                  <div className="flex items-center gap-2">
+                    {isDiscardMode ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsDiscardMode(false);
+                            setSelectedDiscardIds([]);
+                          }}
+                          className="px-2.5 py-1 bg-white/10 hover:bg-white/20 text-white rounded text-[11px] font-bold"
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          type="button"
+                          disabled={selectedDiscardIds.length === 0}
+                          onClick={() => {
+                            discardCards(selectedDiscardIds);
+                            setIsDiscardMode(false);
+                            setSelectedDiscardIds([]);
+                          }}
+                          className="px-3 py-1 bg-rose-600 hover:bg-rose-500 disabled:bg-zinc-800 disabled:text-zinc-600 text-white rounded text-[11px] font-bold"
+                        >
+                          Descartar ({selectedDiscardIds.length})
+                        </button>
+                      </>
                     ) : (
-                      <span
-                        className={`text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full ${
-                          isReady
-                            ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                            : 'bg-amber-500/10 text-amber-300 border border-amber-500/20 animate-pulse'
-                        }`}
-                      >
-                        {isReady ? t('cah.is_ready') : t('cah.waiting')}
-                      </span>
+                      <>
+                        {discardsRemaining > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsDiscardMode(true);
+                              setSelectedDiscardIds([]);
+                              setSelectedCardIds([]);
+                            }}
+                            className="px-2.5 py-1 bg-zinc-800 hover:bg-zinc-700 border border-white/10 text-zinc-300 rounded text-[11px] font-bold"
+                          >
+                            🔄 Ciclar ({discardsRemaining})
+                          </button>
+                        )}
+                        {selectedCardIds.length === requiredPick && (
+                          <button
+                            type="button"
+                            onClick={() => submitAnswer(selectedCardIds)}
+                            className="px-4 py-1 bg-purple-600 hover:bg-purple-500 text-white rounded text-[11px] font-black uppercase tracking-wider shadow-md"
+                          >
+                            Enviar Carta(s) ✓
+                          </button>
+                        )}
+                      </>
                     )}
                   </div>
-                );
-              })}
-            </div>
-
-            {/* Iniciar Partida */}
-            {isLeader && (
-              <div className="flex flex-col items-center gap-3 pt-2">
-                <button
-                  onClick={startGame}
-                  disabled={
-                    !gameState.players.every((p) => gameState.playerReady?.[p]) ||
-                    gameState.players.length < 3
-                  }
-                  className="px-10 py-5 bg-white hover:bg-gray-200 text-slate-950 border-2 border-white rounded-2xl font-black tracking-wider text-xl transition-all shadow-2xl disabled:opacity-40 disabled:cursor-not-allowed active:scale-95"
-                >
-                  {t('cah.start_match')}
-                </button>
-                {gameState.players.length < 3 && (
-                  <p className="text-xs text-amber-400 font-medium">
-                    {t('cah.min_players_warn')}
-                  </p>
                 )}
+              </div>
+
+              {/* Horizontally scrollable white cards rack */}
+              <div className="w-full overflow-x-auto py-1 custom-scrollbar">
+                <div className="flex gap-2 justify-start sm:justify-center min-w-max px-2">
+                  {myHand.map((card) => {
+                    let isSelected = false;
+                    let badge: string | number | null = null;
+
+                    if (isDiscardMode) {
+                      isSelected = selectedDiscardIds.includes(card.id);
+                      badge = isSelected ? '🗑️' : null;
+                    } else {
+                      const selIndex = selectedCardIds.indexOf(card.id);
+                      isSelected = selIndex !== -1;
+                      badge = isSelected
+                        ? requiredPick > 1
+                          ? `[${selIndex + 1}]`
+                          : '✓'
+                        : null;
+                    }
+
+                    const disabled = isCzar || gameState.hasSubmitted;
+
+                    return (
+                      <WhiteCardView
+                        key={card.id}
+                        card={card}
+                        isSelected={isSelected}
+                        selectionBadge={badge}
+                        disabled={disabled}
+                        onHover={(hovering) =>
+                          !disabled && setHoveredCardText(hovering ? card.text : null)
+                        }
+                        onClick={() => !disabled && handleCardClick(card.id)}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null
+      }
+      overlay={
+        <>
+          {/* Winner Modal */}
+          <AnimatePresence>
+            {gameState.state === 'ROUND_REVEAL' && gameState.roundWinner && showWinnerModal && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  className="relative w-full max-w-lg bg-zinc-900 border-2 border-amber-400 rounded-3xl p-6 shadow-2xl text-center space-y-4"
+                >
+                  <div className="text-4xl">👑</div>
+                  <div>
+                    <span className="text-xs font-mono uppercase tracking-widest text-amber-400 font-bold">
+                      Vencedor da Rodada
+                    </span>
+                    <h3 className="text-2xl font-black text-white mt-1">
+                      {gameState.roundWinner.playerName}
+                    </h3>
+                  </div>
+
+                  <div className="p-3 bg-black/50 border border-white/10 rounded-xl text-xs text-gray-300">
+                    <p className="font-bold text-white mb-1">Resposta Campeã:</p>
+                    <p className="italic">
+                      "{gameState.roundWinner.cards?.map((c) => c.text).join(' + ') || gameState.roundWinner.card?.text}"
+                    </p>
+                  </div>
+
+                  <div className="flex gap-2 justify-center pt-2">
+                    <button
+                      onClick={() => setShowWinnerModal(false)}
+                      className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold"
+                    >
+                      Ver Mesa
+                    </button>
+                    {(isCzar || isLeader) && (
+                      <button
+                        onClick={nextRound}
+                        className="px-6 py-2 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black rounded-xl text-xs uppercase tracking-wider"
+                      >
+                        Próxima Rodada &rarr;
+                      </button>
+                    )}
+                  </div>
+                </motion.div>
               </div>
             )}
-          </div>
-        )}
+          </AnimatePresence>
 
-        {/* 2. FASE EM JOGO (RESPOSTAS, JULGAMENTO OU REVELAÇÃO) */}
-        {gameState.state !== 'LOBBY' && gameState.state !== 'GAME_OVER' && (
-          <div className="flex flex-col justify-between flex-grow gap-6">
-            
-            {/* TOPO: CARTA PRETA CENTRAL + PLACAR LATERAL */}
-            <div className="flex flex-col lg:flex-row items-center lg:items-start justify-center gap-6">
-              
-              {/* CARTA PRETA CENTRAL */}
-              {gameState.currentBlackCard && (
-                <div className="flex-grow flex flex-col items-center max-w-xl w-full">
-                  <BlackCardView
-                    text={gameState.currentBlackCard.text}
-                    pick={requiredPick}
-                    previewTexts={activePreviewTexts}
-                  />
-
-                  {/* Banner Informativo de Fase */}
-                  <div className="mt-4 text-center">
-                    {gameState.state === 'SELECTING_ANSWERS' && (
-                      <div className="text-xs font-bold uppercase tracking-wider">
-                        {isCzar ? (
-                          <span className="text-amber-400 bg-amber-950/60 px-4 py-1.5 rounded-full border border-amber-500/30 inline-block animate-pulse">
-                            {t('cah.czar_you', {
-                              current: gameState.submissionsCount,
-                              total: gameState.totalExpectedSubmissions,
-                            })}
-                          </span>
-                        ) : gameState.hasSubmitted ? (
-                          <span className="text-emerald-400 bg-emerald-950/60 px-4 py-1.5 rounded-full border border-emerald-500/30 inline-block">
-                            {t('cah.submitted_wait', {
-                              current: gameState.submissionsCount,
-                              total: gameState.totalExpectedSubmissions,
-                            })}
-                          </span>
-                        ) : (
-                          <span className="text-purple-300 bg-purple-950/60 px-4 py-1.5 rounded-full border border-purple-500/30 inline-block">
-                            {requiredPick > 1
-                              ? t('cah.select_multi_inst', { count: requiredPick })
-                              : t('cah.select_one_inst')}
-                          </span>
-                        )}
-                      </div>
-                    )}
-
-                    {gameState.state === 'JUDGING' && (
-                      <div className="flex flex-col items-center gap-2">
-                        <div className="flex items-center gap-2.5">
-                          <span className="text-xs font-mono font-bold uppercase tracking-widest px-3 py-1 rounded-full bg-white/10 border border-white/10 text-gray-300">
-                            {t('cah.cards_revealed_counter', {
-                              current: gameState.revealedSubmissionsCount || 0,
-                              total: gameState.totalExpectedSubmissions,
-                            })}
-                          </span>
-                          {gameState.allSubmissionsRevealed ? (
-                            <span className="text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 animate-pulse">
-                              {t('cah.all_revealed')}
-                            </span>
-                          ) : (
-                            <span className="text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                              {t('cah.revealing_in_progress')}
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="text-xs md:text-sm font-bold uppercase tracking-wider">
-                          {!gameState.allSubmissionsRevealed ? (
-                            isCzar ? (
-                              <span className="text-amber-400 bg-amber-950/80 px-5 py-2 rounded-full border border-amber-500/40 inline-flex items-center gap-2 shadow-[0_0_25px_rgba(251,191,36,0.3)] animate-pulse">
-                                <span>👁️</span>
-                                <span>{t('cah.czar_reveal_inst')}</span>
-                              </span>
-                            ) : (
-                              <span className="text-gray-300 bg-black/70 px-5 py-2 rounded-full border border-white/10 inline-flex items-center gap-2 animate-pulse">
-                                <span>⏳</span>
-                                <span>{t('cah.player_reveal_inst', { name: gameState.czarName })}</span>
-                              </span>
-                            )
-                          ) : (
-                            isCzar ? (
-                              <span className="text-amber-300 bg-amber-950/80 px-5 py-2 rounded-full border border-amber-500/40 inline-flex items-center gap-2 shadow-[0_0_30px_rgba(251,191,36,0.4)]">
-                                <span>👑</span>
-                                <span>{t('cah.czar_judge_inst')}</span>
-                              </span>
-                            ) : (
-                              <span className="text-amber-300 bg-black/70 px-5 py-2 rounded-full border border-amber-500/20 inline-flex items-center gap-2">
-                                <span>👑</span>
-                                <span>{t('cah.player_judge_inst', { name: gameState.czarName })}</span>
-                              </span>
-                            )
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {gameState.state === 'ROUND_REVEAL' && (
-                      <div className="text-xs font-bold uppercase tracking-wider text-amber-300 bg-amber-950/60 px-4 py-1.5 rounded-full border border-amber-500/30 inline-flex items-center gap-2">
-                        <span>{t('cah.round_completed_banner')}</span>
-                      </div>
-                    )}
-                  </div>
+          {/* Off-canvas Side Drawer */}
+          <SideDrawer
+            isOpen={drawerTab !== null}
+            onClose={() => setDrawerTab(null)}
+            title="Cards Against Humanity"
+            tabs={drawerTabs}
+            activeTab={drawerTab || 'players'}
+            onTabChange={(tab) => setDrawerTab(tab as any)}
+          >
+            {drawerTab === 'players' && (
+              <div className="space-y-3">
+                <div className="text-xs text-gray-400 flex justify-between">
+                  <span>Placar (Meta: {gameState.scoreToWin} pts)</span>
+                  <span>{gameState.players.length} jogadores</span>
                 </div>
-              )}
-
-              {/* PLACAR LATERAL */}
-              <div className="bg-black/60 border border-white/10 rounded-2xl p-4 min-w-[240px] max-w-xs w-full shadow-xl">
-                <div className="flex justify-between items-center mb-3 pb-2 border-b border-white/10">
-                  <span className="text-xs font-bold uppercase tracking-widest text-gray-400">
-                    {t('cah.scoreboard_title', { score: gameState.scoreToWin })}
-                  </span>
-                </div>
-
                 <div className="space-y-2">
                   {gameState.players.map((pid) => {
                     const pName = gameState.playerNames?.[pid] || pid.substring(0, 6);
@@ -971,428 +696,381 @@ export function CahGameRoom() {
                     const pIsCzar = pid === gameState.czarId;
                     const pSubmitted = gameState.submittedStatus?.[pid];
                     const isMe = pid === myId;
-                    const isRoundWinner =
-                      gameState.state === 'ROUND_REVEAL' &&
-                      roundWinnerInfo?.playerId === pid;
-                    const pointsWon =
-                      roundWinnerInfo?.pointsWon ||
-                      (roundWinnerInfo?.cards?.length || 1);
 
                     return (
                       <div
                         key={pid}
-                        className={`flex items-center justify-between p-2 rounded-xl border text-xs transition-all ${
-                          isRoundWinner
-                            ? 'bg-amber-950/70 border-2 border-amber-400 shadow-[0_0_25px_rgba(251,191,36,0.6)] text-amber-200 scale-[1.02]'
-                            : pIsCzar
-                            ? 'bg-amber-950/40 border-amber-500/40 text-amber-200'
+                        className={`p-3 rounded-xl border flex items-center justify-between text-xs ${
+                          pIsCzar
+                            ? 'bg-amber-950/30 border-amber-500/40 text-amber-200'
                             : isMe
-                            ? 'bg-white/10 border-white/30 text-white font-bold'
-                            : 'bg-black/30 border-white/5 text-gray-300'
+                            ? 'bg-white/10 border-white/20 text-white'
+                            : 'bg-white/5 border-white/10 text-gray-300'
                         }`}
                       >
                         <div className="flex items-center gap-2 truncate">
-                          {isRoundWinner ? (
-                            <span title={t('cah.round_winner_badge')}>🏆</span>
-                          ) : pIsCzar ? (
-                            <span title={t('cah.czar_label')}>👑</span>
+                          {pIsCzar ? (
+                            <span title="Czar">👑</span>
                           ) : pSubmitted ? (
-                            <span className="text-emerald-400" title={t('itto.submitted')}>✓</span>
+                            <span className="text-emerald-400">✓</span>
                           ) : (
-                            <span className="text-gray-600">○</span>
+                            <span className="text-gray-500">○</span>
                           )}
-                          <span className="truncate">
-                            {pName} {isMe && t('common.you')}
+                          <span className="font-bold truncate">
+                            {pName} {isMe && <span className="text-zinc-400 text-[10px]">(Você)</span>}
                           </span>
                         </div>
-
-                        <div className="flex items-center gap-1.5 flex-shrink-0">
-                          {isRoundWinner && (
-                            <motion.span
-                              initial={{ scale: 0, opacity: 0 }}
-                              animate={{ scale: [1, 1.18, 1], opacity: 1 }}
-                              transition={{ duration: 0.6, repeat: Infinity, repeatDelay: 0.8 }}
-                              className="px-2 py-0.5 bg-amber-400 text-slate-950 font-black text-[10px] rounded-full shadow-md whitespace-nowrap"
-                            >
-                              +{pointsWon} {t('common.pts')}
-                            </motion.span>
-                          )}
-                          <span
-                            className={`font-black text-sm px-2 py-0.5 rounded-md border ${
-                              isRoundWinner
-                                ? 'bg-amber-400 text-slate-950 border-white'
-                                : 'bg-black/60 border-white/10'
-                            }`}
-                          >
-                            {pScore}
-                          </span>
-                        </div>
+                        <span className="font-mono font-black text-sm px-2 py-0.5 rounded bg-black/40 border border-white/10">
+                          {pScore} pts
+                        </span>
                       </div>
                     );
                   })}
                 </div>
               </div>
+            )}
+
+            {drawerTab === 'history' && (
+              <div className="space-y-2 text-xs text-gray-400">
+                <p className="italic text-center py-4">Histórico das rodadas anteriores gravado automaticamente.</p>
+              </div>
+            )}
+
+            {drawerTab === 'rules' && (
+              <div className="space-y-4 text-xs text-gray-300 leading-relaxed">
+                <div>
+                  <h4 className="font-bold text-white text-sm mb-1">Como Jogar</h4>
+                  <p>A cada rodada, um jogador é o Czar e apresenta uma Carta Preta com uma pergunta ou frase para preencher.</p>
+                </div>
+                <div>
+                  <h4 className="font-bold text-white text-sm mb-1">Respostas Brancas</h4>
+                  <p>Todos os outros jogadores escolhem secretamente suas cartas brancas mais engraçadas ou absurdas para completar a frase.</p>
+                </div>
+                <div>
+                  <h4 className="font-bold text-white text-sm mb-1">Julgamento do Czar</h4>
+                  <p>O Czar lê as combinações anonimamente e escolhe a favorita. O dono da resposta ganha 1 ponto.</p>
+                </div>
+              </div>
+            )}
+          </SideDrawer>
+        </>
+      }
+    >
+      {/* 1. LOBBY */}
+      {gameState.state === 'LOBBY' && (
+        <div className="w-full max-w-lg bg-zinc-900 border border-white/10 rounded-3xl p-5 md:p-6 shadow-2xl flex flex-col items-center text-center space-y-3.5 my-auto max-h-[90dvh] overflow-y-auto custom-scrollbar">
+          <div className="w-14 h-14 rounded-2xl bg-zinc-800 border border-white/20 flex items-center justify-center text-3xl">
+            🃏
+          </div>
+          <div>
+            <h2 className="text-xl md:text-2xl font-black text-white uppercase">
+              Cards Against Humanity
+            </h2>
+            <p className="text-gray-400 text-xs mt-0.5">
+              Um jogo festivo para pessoas horríveis. Mínimo de 3 jogadores para iniciar.
+            </p>
+          </div>
+
+          {/* Jogadores Conectados e Prontos */}
+          <div className="w-full p-3 rounded-2xl bg-white/5 border border-white/10 text-left space-y-2">
+            <div className="flex justify-between items-center text-xs">
+              <span className="text-gray-400 font-bold uppercase tracking-wider text-[10px]">
+                Jogadores Conectados ({gameState.players.length})
+              </span>
+              <span className="font-mono text-amber-300 text-xs font-bold">
+                {gameState.players.filter((p) => gameState.playerReady?.[p]).length}/{gameState.players.length} Prontos
+              </span>
             </div>
 
-            {/* MEIO: MESA DE CARTAS SUBMETIDAS (EM JULGAMENTO OU REVELAÇÃO) */}
-            {(gameState.state === 'JUDGING' || gameState.state === 'ROUND_REVEAL') && (
-              <div className="flex flex-col items-center gap-4 my-4">
-                <div className="flex justify-between items-center w-full max-w-4xl px-2">
-                  <span className="text-xs font-black uppercase tracking-wider text-gray-400">
-                    {gameState.state === 'JUDGING'
-                      ? gameState.allSubmissionsRevealed
-                        ? t('cah.revealed_answers_title')
-                        : t('cah.cards_on_table_title')
-                      : t('cah.all_revealed_answers_title')}
-                  </span>
-                  {gameState.state === 'JUDGING' && (
-                    <span className="text-xs font-mono text-gray-400">
-                      {t('cah.revealed_progress', {
-                        current: gameState.revealedSubmissionsCount || 0,
-                        total: gameState.totalExpectedSubmissions,
-                      })}
+            <div className="space-y-1.5 max-h-[160px] overflow-y-auto pr-1 custom-scrollbar">
+              {gameState.players.map((pid) => {
+                const isOnline = gameState.playerConnected?.[pid] !== false;
+                const pName = gameState.playerNames?.[pid] || pid.substring(0, 6);
+                const isReady = gameState.playerReady?.[pid];
+                const isMe = pid === myId;
+                const isRoomLeader = gameState.players[0] === pid;
+
+                return (
+                  <div
+                    key={pid}
+                    className={`px-3 py-2 rounded-xl border flex items-center justify-between text-xs ${
+                      isOnline
+                        ? 'bg-black/50 border-white/10 text-white'
+                        : 'bg-rose-950/20 border-rose-500/30 text-rose-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 truncate">
+                      <span className={`w-2 h-2 rounded-full shrink-0 ${isOnline ? 'bg-emerald-400' : 'bg-gray-500'}`} />
+                      <span className="font-bold truncate">
+                        {pName} {isMe && '(Você)'} {isRoomLeader && '👑'}
+                      </span>
+                    </div>
+
+                    <span
+                      className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full shrink-0 ${
+                        isReady
+                          ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-300'
+                          : 'bg-amber-500/10 border border-amber-500/30 text-amber-300'
+                      }`}
+                    >
+                      {isReady ? '✓ Pronto' : 'Aguardando'}
                     </span>
-                  )}
-                </div>
-
-                {/* Grid de Cartas Submetidas */}
-                <div className="flex flex-wrap gap-5 justify-center items-center max-w-5xl">
-                  {gameState.state === 'JUDGING' &&
-                    gameState.anonymousSubmissions?.map((sub: AnonymousSubmission) => {
-                      const isRevealed = !!sub.isRevealed;
-                      const cardsCount =
-                        sub.cardsCount ||
-                        (sub.cards && sub.cards.length > 0 ? sub.cards.length : 1);
-                      const subCards =
-                        sub.cards && sub.cards.length > 0
-                          ? sub.cards
-                          : Array.from({ length: cardsCount }, (_, i) => ({
-                              id: `${sub.submissionId}_${i}`,
-                              text: '',
-                            }));
-                      const isSelected = czarSelectedSubId === sub.submissionId;
-                      const allRevealed = !!gameState.allSubmissionsRevealed;
-
-                      const handleRevealOrSelect = () => {
-                        if (!isRevealed) {
-                          if (isCzar) {
-                            revealSubmission(sub.submissionId);
-                          }
-                        } else if (allRevealed && isCzar) {
-                          setCzarSelectedSubId(sub.submissionId);
-                        }
-                      };
-
-                      return (
-                        <div key={sub.submissionId} className="flex flex-col items-center gap-3">
-                          <div
-                            className={`flex gap-3 p-3 rounded-3xl border-2 transition-all ${
-                              isSelected
-                                ? 'bg-purple-950/40 border-purple-500 shadow-[0_0_35px_rgba(168,85,247,0.4)]'
-                                : isRevealed
-                                ? 'bg-white/5 border-white/10'
-                                : 'bg-black/40 border-white/10'
-                            }`}
-                          >
-                            {subCards.map((card, i) => (
-                              <FlippableCard
-                                key={card.id || i}
-                                card={card}
-                                isRevealed={isRevealed}
-                                cardsCount={cardsCount}
-                                cardIndex={i}
-                                isCzar={isCzar}
-                                allRevealed={allRevealed}
-                                isSelected={isSelected}
-                                onCardClick={handleRevealOrSelect}
-                                onHover={(hovering) => {
-                                  if (isRevealed && allRevealed && sub.cards) {
-                                    setCzarHoveredTexts(
-                                      hovering ? sub.cards.map((c) => c.text) : null
-                                    );
-                                  }
-                                }}
-                              />
-                            ))}
-                          </div>
-
-                          {/* Botão de Escolher Vencedor - Apenas após todas as cartas serem reveladas */}
-                          {isCzar && allRevealed && isSelected && (
-                            <motion.button
-                              initial={{ scale: 0.85, opacity: 0, y: -5 }}
-                              animate={{ scale: 1, opacity: 1, y: 0 }}
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                              onClick={() => selectWinner(sub.submissionId)}
-                              className="px-6 py-3 bg-gradient-to-r from-amber-400 to-amber-300 hover:from-amber-300 hover:to-amber-200 text-slate-950 font-black text-xs md:text-sm uppercase tracking-wider rounded-xl shadow-[0_0_30px_rgba(251,191,36,0.7)] border-2 border-white transition active:scale-95 cursor-pointer flex items-center gap-2"
-                            >
-                              <span>👑</span>
-                              <span>
-                                {cardsCount > 1
-                                  ? t('cah.choose_winner_multi', { count: cardsCount })
-                                  : t('cah.choose_winner_single')}
-                              </span>
-                            </motion.button>
-                          )}
-                        </div>
-                      );
-                    })}
-
-                  {gameState.state === 'ROUND_REVEAL' &&
-                    gameState.allRevealedSubmissions?.map((sub, idx) => {
-                      const cards = sub.cards && sub.cards.length > 0 ? sub.cards : [{ id: sub.cardId, text: sub.text }];
-                      return (
-                        <div key={sub.submissionId || sub.cardId || `${sub.playerId}_${idx}`} className="flex flex-col items-center">
-                          {cards.length > 1 ? (
-                            <div
-                              className={`flex gap-2 p-2.5 rounded-2xl border-2 ${
-                                sub.isWinner
-                                  ? 'bg-amber-400/20 border-amber-400 shadow-[0_0_35px_rgba(251,191,36,0.5)] scale-105'
-                                  : 'bg-white/5 border-white/10'
-                              }`}
-                            >
-                              {cards.map((c, i) => (
-                                <WhiteCardView
-                                  key={c.id || i}
-                                  card={c}
-                                  selectionBadge={`[${i + 1}]`}
-                                  isWinner={sub.isWinner}
-                                  authorName={i === cards.length - 1 ? sub.playerName : undefined}
-                                  disabled
-                                />
-                              ))}
-                            </div>
-                          ) : (
-                            <WhiteCardView
-                              card={cards[0]}
-                              isWinner={sub.isWinner}
-                              authorName={sub.playerName}
-                              disabled
-                            />
-                          )}
-                        </div>
-                      );
-                    })}
-                </div>
-
-                {/* BOTÃO ÚNICO E BEM VISÍVEL PARA AVANÇAR RODADA (QUANDO MODAL MINIMIZADO) */}
-                {gameState.state === 'ROUND_REVEAL' && !showWinnerModal && (
-                  <div className="w-full flex justify-center mt-6">
-                    {isCzar || isLeader ? (
-                      <motion.button
-                        whileHover={{ scale: 1.04 }}
-                        whileTap={{ scale: 0.96 }}
-                        onClick={nextRound}
-                        className="px-12 py-4 bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black text-lg uppercase tracking-widest rounded-2xl shadow-[0_0_40px_rgba(251,191,36,0.6)] border-2 border-white transition-all flex items-center gap-3 cursor-pointer"
-                      >
-                        <span>{t('cah.advance_next_round')}</span>
-                        <span className="text-2xl font-black">➔</span>
-                      </motion.button>
-                    ) : (
-                      <div className="px-6 py-3 bg-amber-950/40 border border-amber-500/30 rounded-2xl text-amber-300 font-medium text-sm">
-                        ⏳ {t('cah.waiting_czar_advance', { name: gameState.czarName ? `(${gameState.czarName})` : '' })}
-                      </div>
-                    )}
                   </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Configurações da Partida (Idioma do Baralho & Meta de Pontos) */}
+          <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-2 text-left text-xs">
+            <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 flex flex-col justify-between gap-1.5">
+              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                Idioma do Baralho:
+              </span>
+              <div className="flex gap-1">
+                <button
+                  type="button"
+                  disabled={!isLeader}
+                  onClick={() => sendMessage('SET_LANGUAGE', { language: 'pt' })}
+                  className={`flex-1 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                    (gameState.language || 'pt') === 'pt'
+                      ? 'bg-purple-600 text-white shadow'
+                      : 'bg-black/40 text-gray-400 hover:text-white'
+                  }`}
+                >
+                  🇧🇷 PT
+                </button>
+                <button
+                  type="button"
+                  disabled={!isLeader}
+                  onClick={() => sendMessage('SET_LANGUAGE', { language: 'en' })}
+                  className={`flex-1 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                    gameState.language === 'en'
+                      ? 'bg-purple-600 text-white shadow'
+                      : 'bg-black/40 text-gray-400 hover:text-white'
+                  }`}
+                >
+                  🇺🇸 EN
+                </button>
+              </div>
+            </div>
+
+            <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 flex flex-col justify-between gap-1.5">
+              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                Meta de Pontos: <strong className="text-amber-400">{gameState.scoreToWin || 5} pts</strong>
+              </span>
+              {isLeader ? (
+                <div className="flex gap-1">
+                  {[3, 5, 7, 10].map((pts) => (
+                    <button
+                      key={pts}
+                      type="button"
+                      onClick={() => setOptions(pts)}
+                      className={`flex-1 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                        gameState.scoreToWin === pts
+                          ? 'bg-amber-500 text-black shadow'
+                          : 'bg-black/40 text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      {pts}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <span className="text-gray-400 text-[11px]">Definido pelo líder</span>
+              )}
+            </div>
+          </div>
+
+          <div className="w-full flex flex-col gap-2 pt-1">
+            <button
+              onClick={toggleReady}
+              className={`w-full py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all cursor-pointer ${
+                gameState.playerReady?.[myId]
+                  ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                  : 'bg-white/10 hover:bg-white/20 text-white border border-white/10'
+              }`}
+            >
+              {gameState.playerReady?.[myId] ? '✓ Pronto' : 'Estou Pronto'}
+            </button>
+
+            {isLeader && (
+              <button
+                onClick={startGame}
+                disabled={
+                  !gameState.players.every((p) => gameState.playerReady?.[p]) ||
+                  gameState.players.length < 3
+                }
+                className="w-full py-3 bg-white hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg cursor-pointer"
+              >
+                {gameState.players.length < 3 ? 'Mínimo de 3 Jogadores' : 'Iniciar Partida 🚀'}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 2. ACTIVE GAMEPLAY */}
+      {gameState.state !== 'LOBBY' && gameState.state !== 'GAME_OVER' && (
+        <div className="w-full max-w-4xl flex flex-col items-center justify-between h-full py-1">
+          {/* Black Card Stage */}
+          {gameState.currentBlackCard && (
+            <div className="w-full flex justify-center shrink-0">
+              <BlackCardView
+                text={gameState.currentBlackCard.text}
+                pick={requiredPick}
+                previewTexts={activePreviewTexts}
+              />
+            </div>
+          )}
+
+          {/* Center Table (Submissions during Judging or Reveal) */}
+          <div className="flex-1 w-full flex flex-col items-center justify-center min-h-0 my-2">
+            {gameState.state === 'SELECTING_ANSWERS' && (
+              <div className="text-center space-y-2">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs text-zinc-300">
+                  <span>Cartas enviadas:</span>
+                  <span className="font-mono font-bold text-amber-300">
+                    {gameState.submissionsCount} / {gameState.totalExpectedSubmissions}
+                  </span>
+                </div>
+                {isCzar && (
+                  <p className="text-xs text-amber-400 font-medium">
+                    👑 Você é o Czar. Aguarde os outros jogadores enviarem suas respostas!
+                  </p>
                 )}
               </div>
             )}
 
-            {/* BASE: MÃO DE CARTAS BRANCAS DO JOGADOR (NA FASE DE SELEÇÃO) */}
-            {gameState.state === 'SELECTING_ANSWERS' && (
-              <div className="flex flex-col items-center gap-4 mt-auto">
-                <div className="flex flex-wrap justify-between items-center w-full max-w-5xl px-4 gap-3">
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm font-black uppercase tracking-wider text-gray-200">
-                      {t('cah.your_hand')}
-                    </span>
-                    {isCzar ? (
-                      <span className="text-xs text-amber-400 font-bold italic">
-                        {t('cah.czar_no_play')}
-                      </span>
-                    ) : isDiscardMode ? (
-                      <span className="text-xs px-3 py-1 bg-rose-950/70 border border-rose-500/50 rounded-full font-mono font-bold text-rose-300 animate-pulse">
-                        🗑️ {t('cah.discard_mode_active', {
-                          count: discardsRemaining,
-                          selected: selectedDiscardIds.length,
-                        })}
-                      </span>
-                    ) : (
-                      <span className="text-xs px-2.5 py-1 bg-white/10 rounded-full font-mono font-bold text-amber-300 border border-white/10">
-                        {requiredPick > 1
-                          ? t('cah.select_cards_order', {
-                              count: requiredPick,
-                              current: selectedCardIds.length,
-                              total: requiredPick,
-                            })
-                          : t('cah.select_one_card', { current: selectedCardIds.length })}
-                      </span>
-                    )}
-                  </div>
+            {(gameState.state === 'JUDGING' || gameState.state === 'ROUND_REVEAL') && (
+              <div className="w-full flex flex-col items-center gap-3">
+                <div className="w-full overflow-x-auto py-2 custom-scrollbar">
+                  <div className="flex gap-3 justify-center min-w-max px-4">
+                    {gameState.state === 'JUDGING' &&
+                      gameState.anonymousSubmissions?.map((sub: AnonymousSubmission) => {
+                        const isRevealed = !!sub.isRevealed;
+                        const cardsCount =
+                          sub.cardsCount ||
+                          (sub.cards && sub.cards.length > 0 ? sub.cards.length : 1);
+                        const subCards =
+                          sub.cards && sub.cards.length > 0
+                            ? sub.cards
+                            : Array.from({ length: cardsCount }, (_, i) => ({
+                                id: `${sub.submissionId}_${i}`,
+                                text: '',
+                              }));
+                        const isSelected = czarSelectedSubId === sub.submissionId;
+                        const allRevealed = !!gameState.allSubmissionsRevealed;
 
-                  {!isCzar && !gameState.hasSubmitted && (
-                    <div className="flex items-center gap-2">
-                      {/* Controles de Descarte */}
-                      {isDiscardMode ? (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setIsDiscardMode(false);
-                              setSelectedDiscardIds([]);
-                            }}
-                            className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition cursor-pointer"
-                          >
-                            {t('common.cancel', 'Cancelar')}
-                          </button>
-                          <motion.button
-                            initial={{ scale: 0.9, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            disabled={selectedDiscardIds.length === 0}
-                            onClick={() => {
-                              discardCards(selectedDiscardIds);
-                              setIsDiscardMode(false);
-                              setSelectedDiscardIds([]);
-                            }}
-                            className={`px-5 py-2 font-black text-xs uppercase tracking-wider rounded-xl shadow-xl transition cursor-pointer ${
-                              selectedDiscardIds.length > 0
-                                ? 'bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white active:scale-95'
-                                : 'bg-gray-800 text-gray-500 cursor-not-allowed'
-                            }`}
-                          >
-                            🗑️ {t('cah.confirm_discard', { count: selectedDiscardIds.length })}
-                          </motion.button>
-                        </>
-                      ) : (
-                        <>
-                          {discardsRemaining > 0 && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setIsDiscardMode(true);
-                                setSelectedDiscardIds([]);
-                                setSelectedCardIds([]);
-                              }}
-                              className="px-3.5 py-1.5 bg-slate-800/80 hover:bg-slate-700/80 border border-white/20 hover:border-amber-400 text-gray-300 hover:text-white font-bold text-xs uppercase tracking-wider rounded-xl transition cursor-pointer flex items-center gap-1.5"
-                            >
-                              <span>🔄</span>
-                              <span>{t('cah.cycle_hand_btn', { remaining: discardsRemaining })}</span>
-                            </button>
-                          )}
-
-                          {selectedCardIds.length === requiredPick && (
-                            <motion.button
-                              initial={{ scale: 0.9, opacity: 0 }}
-                              animate={{ scale: 1, opacity: 1 }}
-                              onClick={() => submitAnswer(selectedCardIds)}
-                              className="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-500 hover:to-fuchsia-500 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-xl transition active:scale-95 cursor-pointer"
-                            >
-                              {requiredPick > 1
-                                ? t('cah.confirm_multi_answers', { count: requiredPick })
-                                : t('cah.confirm_answer')}
-                            </motion.button>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* Leque Horizontal com as 10 Cartas Brancas */}
-                <div className="w-full overflow-x-auto pb-4 pt-2">
-                  <div className="flex gap-3 justify-start md:justify-center min-w-max px-4">
-                    {myHand.map((card) => {
-                      let isSelected = false;
-                      let badge: string | number | null = null;
-
-                      if (isDiscardMode) {
-                        isSelected = selectedDiscardIds.includes(card.id);
-                        badge = isSelected ? '🗑️ Trocar' : null;
-                      } else {
-                        const selIndex = selectedCardIds.indexOf(card.id);
-                        isSelected = selIndex !== -1;
-                        badge = isSelected
-                          ? requiredPick > 1
-                            ? `[${selIndex + 1}] ${selIndex + 1}ª`
-                            : '✓'
-                          : null;
-                      }
-
-                      const disabled = isCzar || gameState.hasSubmitted;
-
-                      return (
-                        <WhiteCardView
-                          key={card.id}
-                          card={card}
-                          isSelected={isSelected}
-                          selectionBadge={badge}
-                          disabled={disabled}
-                          onHover={(hovering) =>
-                            !disabled && setHoveredCardText(hovering ? card.text : null)
+                        const handleRevealOrSelect = () => {
+                          if (!isRevealed) {
+                            if (isCzar) revealSubmission(sub.submissionId);
+                          } else if (allRevealed && isCzar) {
+                            setCzarSelectedSubId(sub.submissionId);
                           }
-                          onClick={() => !disabled && handleCardClick(card.id)}
-                        />
-                      );
-                    })}
+                        };
+
+                        return (
+                          <div key={sub.submissionId} className="flex flex-col items-center gap-2">
+                            <div className="flex gap-2">
+                              {subCards.map((card, i) => (
+                                <FlippableCard
+                                  key={card.id || i}
+                                  card={card}
+                                  isRevealed={isRevealed}
+                                  cardsCount={cardsCount}
+                                  cardIndex={i}
+                                  isCzar={isCzar}
+                                  allRevealed={allRevealed}
+                                  isSelected={isSelected}
+                                  onCardClick={handleRevealOrSelect}
+                                  onHover={(hovering) => {
+                                    if (isRevealed && allRevealed && sub.cards) {
+                                      setCzarHoveredTexts(
+                                        hovering ? sub.cards.map((c) => c.text) : null
+                                      );
+                                    }
+                                  }}
+                                />
+                              ))}
+                            </div>
+
+                            {isCzar && allRevealed && isSelected && (
+                              <button
+                                onClick={() => selectWinner(sub.submissionId)}
+                                className="px-4 py-1.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs uppercase rounded-lg shadow-md cursor-pointer"
+                              >
+                                👑 Escolher Vencedor
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
+
+                    {gameState.state === 'ROUND_REVEAL' &&
+                      gameState.allRevealedSubmissions?.map((sub, idx) => {
+                        const cards = sub.cards && sub.cards.length > 0 ? sub.cards : [{ id: sub.cardId, text: sub.text }];
+                        return (
+                          <div key={sub.submissionId || sub.cardId || `${sub.playerId}_${idx}`} className="flex gap-2">
+                            {cards.map((c, i) => (
+                              <WhiteCardView
+                                key={c.id || i}
+                                card={c}
+                                selectionBadge={cards.length > 1 ? `[${i + 1}]` : undefined}
+                                isWinner={sub.isWinner}
+                                authorName={i === cards.length - 1 ? sub.playerName : undefined}
+                                disabled
+                              />
+                            ))}
+                          </div>
+                        );
+                      })}
                   </div>
                 </div>
+
+                {gameState.state === 'ROUND_REVEAL' && !showWinnerModal && (
+                  <button
+                    onClick={nextRound}
+                    className="px-6 py-2.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl shadow-md cursor-pointer"
+                  >
+                    Próxima Rodada &rarr;
+                  </button>
+                )}
               </div>
             )}
           </div>
-        )}
+        </div>
+      )}
 
-        {/* 3. FASE FINAL: GAME OVER / CAMPEÃO */}
-        {gameState.state === 'GAME_OVER' && (
-          <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="max-w-2xl mx-auto my-auto text-center p-8 bg-black/90 border-4 border-amber-400 rounded-3xl shadow-[0_0_80px_rgba(251,191,36,0.3)] backdrop-blur-2xl"
-          >
-            <div className="text-7xl mb-3">👑</div>
-            <h2 className="text-4xl md:text-5xl font-black text-amber-400 mb-2">
+      {/* 3. GAME OVER */}
+      {gameState.state === 'GAME_OVER' && (
+        <div className="w-full max-w-md bg-zinc-900 border-2 border-amber-400 rounded-3xl p-6 shadow-2xl flex flex-col items-center text-center space-y-4 my-auto">
+          <div className="text-5xl">👑</div>
+          <div>
+            <h2 className="text-3xl font-black text-amber-400">
               {t('cah.champion_title')}
             </h2>
-            <p className="text-gray-300 text-base mb-6">
-              {t('cah.champion_desc', { points: gameState.scoreToWin })}
+            <p className="text-xs text-gray-400 mt-1">
+              Partida concluída! Parabéns ao campeão.
             </p>
+          </div>
 
-            {/* Placar Final */}
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-6 mb-8 max-w-md mx-auto space-y-3">
-              <span className="text-xs uppercase font-mono tracking-widest text-gray-400 block mb-2">
-                {t('cah.final_scoreboard')}
-              </span>
-              {Object.entries(gameState.scores)
-                .sort(([, a], [, b]) => b - a)
-                .map(([pid, score], idx) => {
-                  const pName = gameState.playerNames?.[pid] || pid.substring(0, 6);
-                  return (
-                    <div
-                      key={pid}
-                      className={`flex justify-between items-center p-3 rounded-xl border ${
-                        idx === 0
-                          ? 'bg-amber-400 text-slate-950 font-black border-white scale-105'
-                          : 'bg-black/40 text-gray-200 border-white/10'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="font-mono text-sm font-black">#{idx + 1}</span>
-                        <span>{pName}</span>
-                      </div>
-                      <span className="font-black text-base">{score} {t('common.pts')}</span>
-                    </div>
-                  );
-                })}
-            </div>
-
+          <div className="w-full flex gap-3 pt-2">
             <button
               onClick={restartGame}
-              className="px-10 py-4 bg-white hover:bg-gray-200 text-slate-950 font-black text-sm uppercase tracking-widest rounded-xl shadow-2xl transition active:scale-95 cursor-pointer"
+              className="flex-1 py-2.5 bg-white hover:bg-gray-200 text-slate-950 font-black text-xs uppercase rounded-xl cursor-pointer"
             >
-              {t('cah.play_again')}
+              Jogar Novamente
             </button>
-          </motion.div>
-        )}
-      </main>
-    </div>
+            <button
+              onClick={() => navigate('/hub')}
+              className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white font-bold text-xs uppercase rounded-xl cursor-pointer"
+            >
+              Hub
+            </button>
+          </div>
+        </div>
+      )}
+    </GameShell>
   );
 }

@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 360" width="100%" height="100%">
+  <defs>
+    <radialGradient id="wl-bg" cx="50%" cy="30%" r="80%">
+      <stop offset="0%" stop-color="#1e1b4b"/>
+      <stop offset="60%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </radialGradient>
+    <linearGradient id="spectrum-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#06b6d4"/>
+      <stop offset="25%" stop-color="#3b82f6"/>
+      <stop offset="50%" stop-color="#f59e0b"/>
+      <stop offset="75%" stop-color="#ef4444"/>
+      <stop offset="100%" stop-color="#ec4899"/>
+    </linearGradient>
+    <filter id="dial-shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#000000" flood-opacity="0.6"/>
+    </filter>
+  </defs>
+  <rect width="600" height="360" fill="url(#wl-bg)"/>
+
+  <!-- Waveform lines in background -->
+  <g opacity="0.15" stroke="#38bdf8" stroke-width="2" fill="none">
+    <path d="M 0 180 Q 75 140 150 180 T 300 180 T 450 180 T 600 180"/>
+    <path d="M 0 160 Q 75 220 150 160 T 300 160 T 450 160 T 600 160"/>
+    <path d="M 0 200 Q 75 100 150 200 T 300 200 T 450 200 T 600 200"/>
+  </g>
+
+  <!-- Physical Dial Device -->
+  <g transform="translate(300, 290)" filter="url(#dial-shadow)">
+    <!-- Outer Plastic Casing -->
+    <path d="M -180 0 A 180 180 0 0 1 180 0 Z" fill="#fdfcf8" stroke="#e2e8f0" stroke-width="4"/>
+    
+    <!-- Recessed Bezel -->
+    <path d="M -155 0 A 155 155 0 0 1 155 0 Z" fill="#1e293b"/>
+
+    <!-- Spectrum Arc Band -->
+    <path d="M -135 0 A 135 135 0 0 1 135 0 L 105 0 A 105 105 0 0 0 -105 0 Z" fill="url(#spectrum-grad)"/>
+
+    <!-- Target Bullseye Zone (4 pts, 3 pts, 2 pts) -->
+    <path d="M -24 -115 A 120 120 0 0 1 24 -115 L 18 -90 A 95 95 0 0 0 -18 -90 Z" fill="#facc15" opacity="0.9"/>
+    <path d="M -8 -118 A 120 120 0 0 1 8 -118 L 6 -88 A 95 95 0 0 0 -6 -88 Z" fill="#ef4444"/>
+
+    <!-- Center Pivot Wheel -->
+    <circle cx="0" cy="0" r="48" fill="#334155" stroke="#475569" stroke-width="3"/>
+    <circle cx="0" cy="0" r="34" fill="#0f172a"/>
+    <circle cx="0" cy="0" r="14" fill="#f59e0b"/>
+
+    <!-- Pointer Needle (Rotated at an angle) -->
+    <g transform="rotate(22)">
+      <polygon points="-6,0 6,0 2,-142 -2,-142" fill="#ef4444"/>
+      <circle cx="0" cy="-142" r="5" fill="#f43f5e"/>
+    </g>
+  </g>
+
+  <!-- Left / Right Spectrum Clue Cards -->
+  <g transform="translate(80, 50)">
+    <rect width="130" height="42" rx="8" fill="#0369a1" opacity="0.9"/>
+    <text x="65" y="26" font-family="'Space Grotesk', sans-serif" font-weight="700" font-size="12" fill="#ffffff" text-anchor="middle">SUBESTIMADO</text>
+  </g>
+  <g transform="translate(390, 50)">
+    <rect width="130" height="42" rx="8" fill="#be123c" opacity="0.9"/>
+    <text x="65" y="26" font-family="'Space Grotesk', sans-serif" font-weight="700" font-size="12" fill="#ffffff" text-anchor="middle">SUPERESTIMADO</text>
+  </g>
+</svg>

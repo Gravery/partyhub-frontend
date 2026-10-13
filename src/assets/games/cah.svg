@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 360" width="100%" height="100%">
+  <defs>
+    <radialGradient id="cah-bg" cx="50%" cy="50%" r="75%">
+      <stop offset="0%" stop-color="#18181b"/>
+      <stop offset="100%" stop-color="#09090b"/>
+    </radialGradient>
+    <filter id="cah-shadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000000" flood-opacity="0.8"/>
+    </filter>
+  </defs>
+  <rect width="600" height="360" fill="url(#cah-bg)"/>
+  
+  <!-- Subtle pattern dots -->
+  <g opacity="0.08" fill="#ffffff">
+    <circle cx="50" cy="40" r="2"/><circle cx="150" cy="40" r="2"/><circle cx="250" cy="40" r="2"/><circle cx="350" cy="40" r="2"/><circle cx="450" cy="40" r="2"/><circle cx="550" cy="40" r="2"/>
+    <circle cx="100" cy="90" r="2"/><circle cx="200" cy="90" r="2"/><circle cx="300" cy="90" r="2"/><circle cx="400" cy="90" r="2"/><circle cx="500" cy="90" r="2"/>
+  </g>
+
+  <!-- Angled White Card in background -->
+  <g transform="translate(320, 50) rotate(14)" filter="url(#cah-shadow)">
+    <rect width="170" height="240" rx="14" fill="#f4f4f5" stroke="#e4e4e7" stroke-width="2"/>
+    <text x="20" y="44" font-family="'Helvetica Neue', Arial, sans-serif" font-weight="800" font-size="16" fill="#18181b" line-height="1.2">
+      <tspan x="20" dy="0">Uma resposta</tspan>
+      <tspan x="20" dy="20">completamente</tspan>
+      <tspan x="20" dy="20">inapropriada.</tspan>
+    </text>
+    <circle cx="30" cy="216" r="6" fill="#a1a1aa"/>
+    <text x="44" y="220" font-family="'Helvetica Neue', Arial, sans-serif" font-weight="700" font-size="10" fill="#71717a">PartyHub</text>
+  </g>
+
+  <!-- Stark Black Card in foreground -->
+  <g transform="translate(140, 55) rotate(-6)" filter="url(#cah-shadow)">
+    <rect width="180" height="250" rx="14" fill="#09090b" stroke="#27272a" stroke-width="2"/>
+    <text x="22" y="46" font-family="'Helvetica Neue', Arial, sans-serif" font-weight="900" font-size="20" fill="#ffffff" letter-spacing="-0.5">
+      <tspan x="22" dy="0">Cards</tspan>
+      <tspan x="22" dy="24">Against</tspan>
+      <tspan x="22" dy="24">Humanity</tspan>
+    </text>
+    <text x="22" y="160" font-family="'Helvetica Neue', Arial, sans-serif" font-weight="600" font-size="13" fill="#d4d4d8">
+      <tspan x="22" dy="0">Um jogo festivo</tspan>
+      <tspan x="22" dy="18">para pessoas</tspan>
+      <tspan x="22" dy="18">horríveis. ______.</tspan>
+    </text>
+    <rect x="22" y="224" width="28" height="6" rx="3" fill="#e4e4e7"/>
+    <text x="56" y="230" font-family="'Helvetica Neue', Arial, sans-serif" font-weight="700" font-size="10" fill="#a1a1aa">COMPRE 1</text>
+  </g>
+</svg>
