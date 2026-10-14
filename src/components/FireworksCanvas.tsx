@@ -66,6 +66,12 @@ export function FireworksCanvas({ isVictory = false, burst, className = '' }: Fi
 
   const startLoop = () => {
     if (isRunningRef.current) return;
+    // Movimento reduzido: sem partículas
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      particlesRef.current = [];
+      rocketsRef.current = [];
+      return;
+    }
     isRunningRef.current = true;
     animFrameId.current = requestAnimationFrame(loop);
   };

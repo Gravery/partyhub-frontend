@@ -1,4 +1,6 @@
 import { useEffect } from 'react';
+import { MotionConfig } from 'framer-motion';
+import { Loader2 } from 'lucide-react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/useAuthStore';
 import { useParams } from 'react-router-dom';
@@ -28,7 +30,7 @@ function GameDispatcher() {
   }
 
   return (
-    <ErrorBoundary fallbackTitle="Falha na Sala de Jogo">
+    <ErrorBoundary>
       {roomComponent}
     </ErrorBoundary>
   );
@@ -38,7 +40,13 @@ function GameDispatcher() {
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuthStore();
   
-  if (isLoading) return <div className="h-screen bg-gray-900 flex items-center justify-center text-white">Carregando...</div>;
+  if (isLoading) {
+    return (
+      <div className="h-[100dvh] bg-ground flex items-center justify-center">
+        <Loader2 size={36} className="text-violet-400 animate-spin" aria-label="Loading" />
+      </div>
+    );
+  }
   if (!user) return <Navigate to="/" replace />;
   
   return children;
@@ -54,6 +62,7 @@ export default function App() {
   if (isLoading) return null;
 
   return (
+    <MotionConfig reducedMotion="user">
     <BrowserRouter>
       <Routes>
         {/* Se já estiver logado, redireciona o / direto pro Hub */}
@@ -78,5 +87,6 @@ export default function App() {
         } />
       </Routes>
     </BrowserRouter>
+    </MotionConfig>
   );
 }

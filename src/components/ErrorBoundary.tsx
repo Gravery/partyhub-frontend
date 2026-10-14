@@ -1,4 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { AlertTriangle } from 'lucide-react';
+import i18n from '../i18n';
 
 interface Props {
   children: ReactNode;
@@ -38,39 +40,28 @@ export class ErrorBoundary extends Component<Props, State> {
   public render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-[#020617] text-white flex items-center justify-center p-6 font-sans">
-          <div className="max-w-lg w-full bg-black/80 border-2 border-red-500/80 rounded-3xl p-8 shadow-[0_0_50px_rgba(239,68,68,0.4)] backdrop-blur-xl text-center space-y-6">
-            <div className="w-16 h-16 bg-red-500/20 border border-red-500/50 rounded-2xl flex items-center justify-center mx-auto text-3xl">
-              ⚠️
-            </div>
-
-            <div>
-              <h2 className="text-2xl font-black text-red-400 uppercase tracking-wider mb-2">
-                {this.props.fallbackTitle || 'Ops! Ocorreu uma falha visual'}
-              </h2>
-              <p className="text-gray-300 text-sm leading-relaxed">
-                Um erro inesperado aconteceu ao renderizar esta tela. Graças ao sistema de reconexão resiliente, seu progresso na partida continua salvo no servidor.
-              </p>
+        <div className="accent-brand min-h-[100dvh] bg-ground text-body flex items-center justify-center p-6">
+          <div role="alert" className="max-w-lg w-full surface border-rose-700 p-8 text-center flex flex-col items-center gap-5">
+            <span className="w-16 h-16 rounded-2xl bg-rose-950 text-rose-300 flex items-center justify-center">
+              <AlertTriangle size={32} />
+            </span>
+            <div className="space-y-2">
+              <h2 className="font-display font-bold text-2xl text-ink">{this.props.fallbackTitle || i18n.t('error.title')}</h2>
+              <p className="text-sm text-body leading-relaxed">{i18n.t('error.body')}</p>
             </div>
 
             {this.state.error && (
-              <div className="bg-red-950/40 border border-red-900/60 rounded-xl p-3 text-left font-mono text-xs text-red-300 overflow-x-auto max-h-32">
-                <p className="font-bold text-red-200">{this.state.error.name}: {this.state.error.message}</p>
-              </div>
+              <pre className="w-full bg-ground border border-line rounded-xl p-3 text-left font-mono text-xs text-rose-200 overflow-x-auto max-h-32 whitespace-pre-wrap">
+                {this.state.error.name}: {this.state.error.message}
+              </pre>
             )}
 
-            <div className="flex gap-3 justify-center pt-2">
-              <button
-                onClick={this.handleReload}
-                className="flex-1 py-3 px-4 bg-red-600 hover:bg-red-500 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg active:scale-95"
-              >
-                Recarregar Sala
+            <div className="w-full flex flex-col sm:flex-row gap-3">
+              <button type="button" onClick={this.handleGoHub} className="btn btn-secondary btn-lg sm:flex-1">
+                {i18n.t('common.back_to_hub')}
               </button>
-              <button
-                onClick={this.handleGoHub}
-                className="flex-1 py-3 px-4 bg-gray-800 hover:bg-gray-700 text-gray-200 border border-gray-700 font-bold text-xs uppercase tracking-wider rounded-xl transition-all active:scale-95"
-              >
-                Voltar ao Hub
+              <button type="button" onClick={this.handleReload} className="btn btn-primary btn-lg sm:flex-1">
+                {i18n.t('error.reload')}
               </button>
             </div>
           </div>

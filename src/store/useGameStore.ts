@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import i18n from '../i18n';
 import { ittoAudio } from '../lib/audioEngine';
 
 interface Card {
@@ -156,7 +157,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       }
     }
 
-    const lang = localStorage.getItem('partyhub_language') || 'en';
+    const lang = i18n.language?.startsWith('pt') ? 'pt' : 'en';
     const wsUrl = `${wsBaseUrl}/${gameSlug}/${roomId}?token=${token}&lang=${lang}`;
     const ws = new WebSocket(wsUrl);
 

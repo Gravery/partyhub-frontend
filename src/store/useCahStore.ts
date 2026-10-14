@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import i18n from '../i18n';
 import { cahAudio } from '../lib/audioEngine';
 
 export interface CahBlackCard {
@@ -153,7 +154,7 @@ export const useCahStore = create<CahStore>((set, get) => ({
       }
     }
 
-    const lang = localStorage.getItem('partyhub_language') || 'en';
+    const lang = i18n.language?.startsWith('pt') ? 'pt' : 'en';
     const wsUrl = `${wsBaseUrl}/cah/${roomId}?token=${token}&lang=${lang}`;
     const ws = new WebSocket(wsUrl);
 

@@ -1,153 +1,158 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '../store/useAuthStore';
-import { motion } from 'framer-motion';
 import { LanguageSelector } from '../components/LanguageSelector';
+import { Gamepad2, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 export function Auth() {
   const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('');
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
-
-  const [username, setUsername] = useState('');
+  const [message, setMessage] = useState<{ text: string; tone: 'error' | 'success' } | null>(null);
   const { signIn, signUp } = useAuthStore();
+
+  // fetch rejeita com TypeError quando o backend está fora do ar; o Supabase responde em inglês
+  const authErrorText = (err: any): string => {
+    const msg: string = err?.message || '';
+    if (err instanceof TypeError) return t('auth.server_offline');
+    if (/invalid login credentials/i.test(msg)) return t('auth.invalid_credentials');
+    if (/email not confirmed/i.test(msg)) return t('auth.email_not_confirmed');
+    if (/already registered/i.test(msg)) return t('auth.already_registered');
+    return msg || t('auth.auth_failed');
+  };
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setErrorMsg('');
+    setMessage(null);
 
     try {
       if (isLogin) {
         await signIn(email, password);
       } else {
         await signUp(email, password, username || email.split('@')[0]);
-        setErrorMsg(t('auth.register_success'));
+        setMessage({ text: t('auth.register_success'), tone: 'success' });
         setIsLogin(true);
       }
     } catch (err: any) {
-      setErrorMsg(err.message || t('auth.auth_failed'));
+      setMessage({ text: authErrorText(err), tone: 'error' });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center bg-[linear-gradient(-45deg,#020617,#1e1b4b,#3b0764,#020617)] bg-[length:400%_400%] animate-[gradient_15s_ease_infinite] text-white font-sans overflow-hidden p-4">
-      <div className="crt-overlay" />
-
-      {/* Language Selector Top Right */}
-      <div className="absolute top-6 right-6 z-20">
+    <div className="accent-brand relative min-h-[100dvh] flex items-center justify-center bg-ground text-body p-4 bg-[radial-gradient(ellipse_at_top,#2E1065_0%,transparent_60%)]">
+      <div className="absolute top-4 right-4">
         <LanguageSelector />
       </div>
-      
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ type: "spring", stiffness: 300, damping: 20 }}
-        className="relative z-10 w-full max-w-md p-8 md:p-10 bg-black/40 backdrop-blur-xl rounded-2xl shadow-[0_0_50px_rgba(168,85,247,0.15)] border-2 border-white/10"
-      >
-        <motion.h1 
-          className="text-4xl md:text-5xl font-black text-center text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-fuchsia-600 mb-2 tracking-[0.2em] neon-text-shadow hover:animate-[glitch_0.3s_infinite]"
-          animate={{ textShadow: ["0 0 10px rgba(168,85,247,0.5)", "0 0 20px rgba(168,85,247,0.8)", "0 0 10px rgba(168,85,247,0.5)"] }}
-          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-        >
-          PARTYHUB
-        </motion.h1>
-        <p className="text-center text-xs font-mono text-gray-400 uppercase tracking-widest mb-8">
-          {t('auth.subtitle')}
-        </p>
-        
-        {errorMsg && (
-          <motion.div 
-            initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
-            className="mb-6 p-4 bg-red-950/50 border-l-4 border-red-500 text-red-200 rounded font-mono text-sm shadow-[0_0_10px_rgba(239,68,68,0.3)]"
-          >
-            {errorMsg}
-          </motion.div>
-        )}
 
-        <form onSubmit={handleAuth} className="space-y-6 relative">
+      <motion.main
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, ease: 'easeOut' }}
+        className="w-full max-w-md surface p-6 md:p-10 shadow-2xl"
+      >
+        <div className="flex flex-col items-center gap-3 mb-8 text-center">
+          <span className="w-14 h-14 rounded-2xl bg-[#2E1065] text-violet-300 flex items-center justify-center" aria-hidden="true">
+            <Gamepad2 size={28} />
+          </span>
+          <h1 className="font-display font-bold text-3xl md:text-4xl tracking-wide text-ink">PARTY HUB</h1>
+          <p className="text-sm text-muted">{isLogin ? t('auth.subtitle') : t('auth.subtitle_signup')}</p>
+        </div>
+
+        <AnimatePresence>
+          {message && (
+            <motion.p
+              role={message.tone === 'error' ? 'alert' : 'status'}
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className={`mb-6 flex items-start gap-2 p-3 rounded-xl border text-sm ${
+                message.tone === 'error' ? 'bg-rose-950 border-rose-700 text-rose-100' : 'bg-emerald-950 border-emerald-700 text-emerald-100'
+              }`}
+            >
+              {message.tone === 'error' ? <AlertCircle size={18} className="shrink-0" /> : <CheckCircle2 size={18} className="shrink-0" />}
+              {message.text}
+            </motion.p>
+          )}
+        </AnimatePresence>
+
+        <form onSubmit={handleAuth} className="flex flex-col gap-5">
           {!isLogin && (
-            <div className="group">
-              <label className="block text-purple-300/70 text-xs font-bold mb-2 uppercase tracking-widest font-mono">
+            <div className="flex flex-col gap-2">
+              <label htmlFor="auth-username" className="text-sm font-bold text-ink">
                 {t('auth.username')}
               </label>
-              <div className="relative">
-                <input 
-                  type="text" 
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="w-full p-4 bg-black/50 border-b-2 border-white/10 text-white focus:border-transparent focus:outline-none transition-all placeholder:text-gray-600 font-mono text-sm"
-                  placeholder={t('auth.username_placeholder')}
-                  required={!isLogin}
-                />
-                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-purple-500 transition-all duration-300 group-focus-within:w-full" />
-              </div>
+              <input
+                id="auth-username"
+                type="text"
+                autoComplete="nickname"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="field"
+                placeholder={t('auth.username_placeholder')}
+                required
+              />
             </div>
           )}
-          
-          <div className="group">
-            <label className="block text-purple-300/70 text-xs font-bold mb-2 uppercase tracking-widest font-mono">
+
+          <div className="flex flex-col gap-2">
+            <label htmlFor="auth-email" className="text-sm font-bold text-ink">
               {t('auth.email')}
             </label>
-            <div className="relative">
-              <input 
-                type="email" 
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full p-4 bg-black/50 border-b-2 border-white/10 text-white focus:border-transparent focus:outline-none transition-all placeholder:text-gray-600 font-mono text-sm"
-                placeholder={t('auth.email_placeholder')}
-                required 
-              />
-              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-purple-500 transition-all duration-300 group-focus-within:w-full" />
-            </div>
+            <input
+              id="auth-email"
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="field"
+              placeholder={t('auth.email_placeholder')}
+              required
+            />
           </div>
-          
-          <div className="group">
-            <label className="block text-purple-300/70 text-xs font-bold mb-2 uppercase tracking-widest font-mono">
+
+          <div className="flex flex-col gap-2">
+            <label htmlFor="auth-password" className="text-sm font-bold text-ink">
               {t('auth.password')}
             </label>
-            <div className="relative">
-              <input 
-                type="password" 
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full p-4 bg-black/50 border-b-2 border-white/10 text-white focus:border-transparent focus:outline-none transition-all placeholder:text-gray-600 font-mono tracking-widest text-sm"
-                placeholder={t('auth.password_placeholder')}
-                required 
-              />
-              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-purple-500 transition-all duration-300 group-focus-within:w-full" />
-            </div>
+            <input
+              id="auth-password"
+              type="password"
+              autoComplete={isLogin ? 'current-password' : 'new-password'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="field"
+              placeholder={t('auth.password_placeholder')}
+              required
+            />
           </div>
-          
-          <motion.button 
-            type="submit" 
-            disabled={loading}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.95 }}
-            className="relative w-full py-4 mt-8 bg-purple-600 hover:bg-purple-500 text-white font-black tracking-widest uppercase rounded overflow-hidden group disabled:opacity-50 border border-purple-400/50 shadow-[0_0_20px_rgba(147,51,234,0.3)] transition-all cursor-pointer text-sm"
-          >
-            <span className="relative z-10">
-              {loading ? t('common.loading') : (isLogin ? t('auth.sign_in_btn') : t('auth.sign_up_btn'))}
-            </span>
-            <div className="absolute inset-0 h-full w-0 bg-white/20 transition-all duration-500 ease-out group-hover:w-full" />
-          </motion.button>
+
+          <button type="submit" disabled={loading} className="btn btn-primary btn-lg btn-block mt-2">
+            {loading && <Loader2 size={18} className="animate-spin" />}
+            {loading ? t('common.loading') : isLogin ? t('auth.sign_in_btn') : t('auth.sign_up_btn')}
+          </button>
         </form>
 
-        <p className="mt-8 text-center text-gray-400 text-xs font-mono">
-          {isLogin ? `${t('auth.need_account')} ` : `${t('auth.already_account')} `}
-          <button 
-            onClick={() => setIsLogin(!isLogin)} 
-            className="text-purple-400 hover:text-purple-300 font-bold transition-colors hover:underline decoration-wavy underline-offset-4 cursor-pointer"
+        <p className="mt-6 text-center text-sm text-muted">
+          {isLogin ? t('auth.need_account') : t('auth.already_account')}{' '}
+          <button
+            type="button"
+            onClick={() => {
+              setIsLogin(!isLogin);
+              setMessage(null);
+            }}
+            className="font-bold text-violet-300 hover:text-violet-200 underline underline-offset-4 cursor-pointer"
           >
-            {isLogin ? t('auth.sign_up_btn') : t('auth.sign_in_btn')}
+            {isLogin ? t('auth.go_sign_up') : t('auth.go_sign_in')}
           </button>
         </p>
-      </motion.div>
+      </motion.main>
     </div>
   );
 }

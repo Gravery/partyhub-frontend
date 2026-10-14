@@ -1,5 +1,7 @@
 import React, { useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export interface TabOption {
   id: string;
@@ -7,87 +9,109 @@ export interface TabOption {
   icon?: React.ReactNode;
 }
 
-interface SideDrawerProps {
-  isOpen: boolean;
-  onClose: () => void;
+export interface SidePanelConfig {
   title: string;
-  tabs?: TabOption[];
-  activeTab?: string;
-  onTabChange?: (tabId: string) => void;
-  children: React.ReactNode;
+  tabs: TabOption[];
+  activeTab: string;
+  onTabChange: (tabId: string) => void;
+  content: React.ReactNode;
 }
 
-export const SideDrawer: React.FC<SideDrawerProps> = ({
-  isOpen,
-  onClose,
+/** Abas + corpo rolável. Usado tanto no trilho lateral (desktop) quanto na gaveta (mobile). */
+export const SidePanel: React.FC<SidePanelConfig & { onClose?: () => void }> = ({
   title,
   tabs,
   activeTab,
   onTabChange,
-  children,
+  content,
+  onClose,
 }) => {
-  // Close on Escape
+  const { t } = useTranslation();
+
+  return (
+    <div className="flex flex-col h-full min-h-0">
+      <div className="h-14 px-4 flex items-center justify-between border-b border-line shrink-0">
+        <h2 className="font-display font-bold text-base text-ink">{title}</h2>
+        {onClose && (
+          <button type="button" onClick={onClose} className="icon-btn border-transparent" aria-label={t('game.close')}>
+            <X size={20} />
+          </button>
+        )}
+      </div>
+
+      {tabs.length > 1 && (
+        <div role="tablist" className="flex border-b border-line shrink-0 overflow-x-auto">
+          {tabs.map((tab) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                onClick={() => onTabChange(tab.id)}
+                className={`flex-1 min-h-11 px-3 text-sm font-semibold flex items-center justify-center gap-1.5 border-b-2 whitespace-nowrap transition-colors cursor-pointer ${
+                  isActive
+                    ? 'border-accent text-ink bg-accent-soft'
+                    : 'border-transparent text-muted hover:text-body'
+                }`}
+              >
+                {tab.icon}
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">{content}</div>
+    </div>
+  );
+};
+
+interface SideDrawerProps extends SidePanelConfig {
+  isOpen: boolean;
+  onClose: () => void;
+  className?: string;
+}
+
+/** Gaveta fora da tela para telas menores que xl. */
+export const SideDrawer: React.FC<SideDrawerProps> = ({ isOpen, onClose, className = '', ...panel }) => {
   useEffect(() => {
+    if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose();
-      }
+      if (e.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity duration-300 animate-fade-in"
-        onClick={onClose}
-      />
-
-      {/* Drawer Panel */}
-      <div className="relative w-full max-w-sm sm:max-w-md h-full bg-slate-900 border-l border-white/10 shadow-2xl flex flex-col z-10 transition-transform duration-300">
-        {/* Header */}
-        <div className="p-4 flex items-center justify-between border-b border-white/10 shrink-0">
-          <h3 className="font-bold text-base text-white tracking-wide">{title}</h3>
-          <button
+    <AnimatePresence>
+      {isOpen && (
+        <div className={`fixed inset-0 z-50 flex justify-end ${className}`}>
+          <motion.div
+            className="absolute inset-0 bg-black/60"
             onClick={onClose}
-            className="p-1 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          />
+          <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-label={panel.title}
+            className="relative w-full max-w-sm sm:max-w-md h-full bg-surface border-l border-line shadow-2xl"
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ duration: 0.25, ease: 'easeOut' }}
           >
-            <X size={20} />
-          </button>
+            <SidePanel {...panel} onClose={onClose} />
+          </motion.div>
         </div>
-
-        {/* Optional Tabs */}
-        {tabs && tabs.length > 1 && (
-          <div className="flex border-b border-white/10 bg-black/20 shrink-0">
-            {tabs.map((tab) => {
-              const isActive = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => onTabChange?.(tab.id)}
-                  className={`flex-1 py-2.5 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors border-b-2 ${
-                    isActive
-                      ? 'border-purple-500 text-purple-400 bg-purple-500/10'
-                      : 'border-transparent text-gray-400 hover:text-gray-200'
-                  }`}
-                >
-                  {tab.icon}
-                  {tab.label}
-                </button>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Scrollable Body */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {children}
-        </div>
-      </div>
-    </div>
+      )}
+    </AnimatePresence>
   );
 };

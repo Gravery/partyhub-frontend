@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import i18n from '../i18n';
 
 export type WavelengthState =
   | 'LOBBY'
@@ -296,7 +297,7 @@ export const useWavelengthStore = create<WavelengthStore>((set, get) => ({
       }
     }
 
-    const currentLang = localStorage.getItem('partyhub_lang') || 'pt';
+    const currentLang = i18n.language?.startsWith('pt') ? 'pt' : 'en';
     const fullWsUrl = `${wsBaseUrl}/wavelength/${roomId}?token=${encodeURIComponent(token)}&lang=${encodeURIComponent(currentLang)}`;
 
     try {

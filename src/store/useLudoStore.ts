@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import i18n from '../i18n';
 
 export type LudoColor = 'RED' | 'GREEN' | 'YELLOW' | 'BLUE';
 
@@ -253,7 +254,7 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
       }
     }
 
-    const lang = localStorage.getItem('partyhub_language') || 'en';
+    const lang = i18n.language?.startsWith('pt') ? 'pt' : 'en';
     const wsUrl = `${wsBaseUrl}/ludo/${roomId}?token=${token}&lang=${lang}`;
     const ws = new WebSocket(wsUrl);
 
@@ -294,7 +295,7 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
             if (lm.captured && lm.capturedBy && lm.capturedPawn) {
               const captor = lm.capturedBy;
               set({
-                toastMessage: `⚔️ ${captor} capturou o peão de ${lm.capturedPawn}!`,
+                toastMessage: i18n.t('ludo.capture_banner', { captor, captured: lm.capturedPawn }),
               });
               ludoAudio.playCapture();
               setTimeout(() => {
@@ -307,8 +308,8 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
             if (lm.isExtraTurn && lm.playerName) {
               const banner =
                 lm.dice === 6
-                  ? `🎲 ${lm.playerName} rolou 6! Jogue novamente!`
-                  : `⚔️ ${lm.playerName} capturou um peão! Jogue novamente!`;
+                  ? i18n.t('ludo.extra_turn_banner', { name: lm.playerName })
+                  : i18n.t('ludo.extra_turn_capture_banner', { name: lm.playerName });
               set({ extraTurnBanner: banner });
               setTimeout(() => {
                 if (get().extraTurnBanner === banner) {

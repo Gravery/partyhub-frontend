@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import i18n from '../i18n';
 
 export interface HanabiCard {
   id: string;
@@ -31,6 +32,7 @@ export interface HanabiPlayResult {
 
 export interface HanabiState {
   state: 'LOBBY' | 'PLAYING' | 'GAME_OVER';
+  language?: string;
   players: string[];
   playerNames?: Record<string, string>;
   playerReady?: Record<string, boolean>;
@@ -137,7 +139,7 @@ export const useHanabiStore = create<HanabiStore>((set, get) => ({
       }
     }
 
-    const lang = localStorage.getItem('partyhub_language') || 'en';
+    const lang = i18n.language?.startsWith('pt') ? 'pt' : 'en';
     const wsUrl = `${wsBaseUrl}/hanabi/${roomId}?token=${token}&lang=${lang}`;
     const ws = new WebSocket(wsUrl);
 

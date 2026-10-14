@@ -1,37 +1,43 @@
 import React, { useState } from 'react';
-import { Copy, Check, LogOut, BookOpen, Users, History, Volume2, VolumeX } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { ChevronLeft, Copy, Check, BookOpen, Users, History, Volume2, VolumeX, Menu } from 'lucide-react';
 import { LanguageSelector } from '../LanguageSelector';
 
 interface GameHeaderProps {
   gameTitle: string;
-  gameBadge?: string;
   roomCode: string;
-  centerContent?: React.ReactNode;
   onExit?: () => void;
+  /** Linha de status: de quem é a vez e o que fazer agora. */
+  status?: React.ReactNode;
+  /** Indicadores curtos do jogo (nível, placar, fichas). */
+  stats?: React.ReactNode;
   onToggleRules?: () => void;
   onTogglePlayers?: () => void;
   onToggleLog?: () => void;
   playerCount?: number;
   soundEnabled?: boolean;
   onToggleSound?: () => void;
-  accentColor?: string;
+  /** Com o trilho lateral visível (≥1280px) os atalhos de painel somem. */
+  railVisible?: boolean;
 }
 
 export const GameHeader: React.FC<GameHeaderProps> = ({
   gameTitle,
-  gameBadge,
   roomCode,
-  centerContent,
   onExit,
+  status,
+  stats,
   onToggleRules,
   onTogglePlayers,
   onToggleLog,
   playerCount,
   soundEnabled,
   onToggleSound,
-  accentColor = 'text-purple-400',
+  railVisible = false,
 }) => {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
+  const panelBtn = railVisible ? 'xl:hidden' : '';
 
   const handleCopyCode = async () => {
     try {
@@ -39,99 +45,90 @@ export const GameHeader: React.FC<GameHeaderProps> = ({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Fallback
+      // Área de transferência indisponível: o código continua visível no chip
     }
   };
 
   return (
-    <div className="h-12 md:h-14 px-2 md:px-4 flex items-center justify-between border-b border-white/10 bg-black/40 backdrop-blur-md">
-      {/* Left: Exit + Title + Room Code Chip */}
-      <div className="flex items-center gap-2 md:gap-3 min-w-0">
-        {onExit && (
-          <button
-            onClick={onExit}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
-            title="Sair da sala"
-          >
-            <LogOut size={18} />
-          </button>
-        )}
-
-        <div className="flex items-center gap-1.5 truncate">
-          <span className={`font-bold text-sm md:text-base tracking-tight truncate ${accentColor}`}>
-            {gameTitle}
-          </span>
-          {gameBadge && (
-            <span className="hidden sm:inline-block text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded bg-white/10 text-gray-300">
-              {gameBadge}
-            </span>
+    <div className="border-b border-line bg-ground">
+      <div className="h-15 md:h-17 px-2 sm:px-4 xl:px-6 flex items-center gap-2 sm:gap-3">
+        {/* Esquerda: sair, título e código da sala */}
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          {onExit && (
+            <button type="button" onClick={onExit} className="icon-btn" aria-label={t('game.exit_room')}>
+              <ChevronLeft size={20} />
+            </button>
           )}
+          <h1 className="font-display font-bold text-lg md:text-xl text-accent truncate">{gameTitle}</h1>
+          <button
+            type="button"
+            onClick={handleCopyCode}
+            className="hidden min-[400px]:inline-flex items-center gap-2 h-9 px-3 rounded-[10px] border border-line-strong bg-surface hover:bg-raised font-mono font-bold text-sm tracking-[0.14em] text-ink transition-colors cursor-pointer shrink-0"
+            aria-label={t('game.copy_room_code', { code: roomCode })}
+          >
+            {roomCode}
+            {copied ? <Check size={16} className="text-emerald-400" /> : <Copy size={16} className="text-muted" />}
+          </button>
         </div>
 
-        {/* Room Code Chip */}
-        <button
-          onClick={handleCopyCode}
-          className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-mono font-bold tracking-wider text-gray-200 transition-all active:scale-95 cursor-pointer"
-          title="Clique para copiar o código da sala"
-        >
-          <span className="text-gray-400 hidden sm:inline">SALA:</span>
-          <span>{roomCode}</span>
-          {copied ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} className="text-gray-400" />}
-        </button>
-      </div>
+        {/* Centro: status e indicadores (abaixo de 768px vão para a segunda linha) */}
+        <div className="hidden md:flex flex-1 min-w-0 items-center justify-center gap-2">
+          {status}
+          {stats}
+        </div>
+        <div className="flex-1 md:hidden" />
 
-      {/* Center: Dynamic Game Status / Turn / Score */}
-      <div className="flex-1 flex justify-center px-2 min-w-0">
-        {centerContent}
-      </div>
-
-      {/* Right: Drawer Triggers & Controls */}
-      <div className="flex items-center gap-1 md:gap-1.5 shrink-0">
-        {onToggleSound && (
-          <button
-            onClick={onToggleSound}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
-            title={soundEnabled ? 'Silenciar som' : 'Ativar som'}
-          >
-            {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
-          </button>
-        )}
-
-        {onToggleRules && (
-          <button
-            onClick={onToggleRules}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
-            title="Regras do jogo"
-          >
-            <BookOpen size={16} />
-          </button>
-        )}
-
-        {onToggleLog && (
-          <button
-            onClick={onToggleLog}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
-            title="Histórico de ações"
-          >
-            <History size={16} />
-          </button>
-        )}
-
-        {onTogglePlayers && (
-          <button
-            onClick={onTogglePlayers}
-            className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium text-gray-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
-            title="Ver jogadores"
-          >
-            <Users size={14} />
-            {playerCount !== undefined && <span>{playerCount}</span>}
-          </button>
-        )}
-
-        <div className="hidden sm:block">
-          <LanguageSelector />
+        {/* Direita: som, painéis, idioma */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {onToggleSound && (
+            <button
+              type="button"
+              onClick={onToggleSound}
+              className="icon-btn"
+              aria-label={soundEnabled ? t('game.sound_off') : t('game.sound_on')}
+              aria-pressed={soundEnabled}
+            >
+              {soundEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
+            </button>
+          )}
+          {onToggleRules && (
+            <button type="button" onClick={onToggleRules} className={`icon-btn hidden sm:inline-flex ${panelBtn}`} aria-label={t('game.rules')}>
+              <BookOpen size={20} />
+            </button>
+          )}
+          {onToggleLog && (
+            <button type="button" onClick={onToggleLog} className={`icon-btn hidden sm:inline-flex ${panelBtn}`} aria-label={t('game.history')}>
+              <History size={20} />
+            </button>
+          )}
+          {onTogglePlayers && (
+            <>
+              <button
+                type="button"
+                onClick={onTogglePlayers}
+                className={`btn btn-secondary btn-sm hidden sm:inline-flex ${panelBtn}`}
+                aria-label={t('game.players')}
+              >
+                <Users size={18} />
+                {playerCount !== undefined && <span>{playerCount}</span>}
+              </button>
+              <button type="button" onClick={onTogglePlayers} className="icon-btn sm:hidden" aria-label={t('game.room_menu')}>
+                <Menu size={20} />
+              </button>
+            </>
+          )}
+          <div className="hidden lg:block">
+            <LanguageSelector />
+          </div>
         </div>
       </div>
+
+      {(status || stats) && (
+        <div className="md:hidden px-2 sm:px-4 pb-2 flex items-center gap-2 min-w-0 [&>*:not([role=status])]:shrink-0">
+          {status}
+          {stats}
+        </div>
+      )}
     </div>
   );
 };

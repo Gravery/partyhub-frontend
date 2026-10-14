@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import {
   X,
   Plus,
@@ -9,6 +10,7 @@ import {
   Check,
   AlertCircle,
   Package,
+  Sparkles,
 } from 'lucide-react';
 
 export type GameThemeType = 'itto' | 'wavelength' | 'cah';
@@ -25,7 +27,7 @@ export interface CustomThemeModalProps {
 const ITTO_PRESETS = [
   {
     id: 'geek_pop',
-    title: 'Geek & Cultura Pop 🎮',
+    title: 'Geek & Cultura Pop',
     desc: 'Superpoderes, heróis, vilões da ficção e games marcantes.',
     themes: [
       {
@@ -93,7 +95,7 @@ const ITTO_PRESETS = [
   },
   {
     id: 'debates_absurdos',
-    title: 'Debates & Dilemas Absurdos 🧠',
+    title: 'Debates & Dilemas Absurdos',
     desc: 'Invenções bizarras, brigas impossíveis e escolhas extremas.',
     themes: [
       {
@@ -121,7 +123,7 @@ const ITTO_PRESETS = [
 const WAVELENGTH_PRESETS = [
   {
     id: 'pop_cinema',
-    title: 'Cultura Pop & Cinema 🎬',
+    title: 'Cultura Pop & Cinema',
     desc: 'Filmes, séries, músicas e personagens sob o olhar do espectro.',
     themes: [
       { left: 'Filme Ruim', right: 'Obra-Prima do Cinema', category: 'Cinema' },
@@ -134,7 +136,7 @@ const WAVELENGTH_PRESETS = [
   },
   {
     id: 'gastronomia',
-    title: 'Gastronomia & Comida 🍕',
+    title: 'Gastronomia & Comida',
     desc: 'Sabores, hábitos à mesa e debates culinários clássicos.',
     themes: [
       { left: 'Comida Intragável', right: 'Banquete dos Deuses', category: 'Comida' },
@@ -147,7 +149,7 @@ const WAVELENGTH_PRESETS = [
   },
   {
     id: 'vida_cotidiano',
-    title: 'Vida, Sociedade & Moral ⚖️',
+    title: 'Vida, Sociedade & Moral',
     desc: 'Condutas sociais, compras por impulso e dilemas do dia a dia.',
     themes: [
       { left: 'Hábito Socialmente Inaceitável', right: 'Comportamento Exemplar', category: 'Cotidiano' },
@@ -188,7 +190,7 @@ const CAH_PRESETS = [
   },
   {
     id: 'tech_devs',
-    title: 'Tech, Devs & Startups 💻',
+    title: 'Tech, Devs & Startups',
     desc: 'Deploy na sexta-feira, reuniões inúteis e café requentado.',
     blackCards: [
       { text: 'O que causou a queda de produção na sexta-feira às 18h? ____.', pick: 1 },
@@ -219,6 +221,7 @@ export const CustomThemeModal: React.FC<CustomThemeModalProps> = ({
   existingCustomCount = 0,
   onSaveThemes,
 }) => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'manual' | 'import' | 'presets'>('manual');
   const [saveMode, setSaveMode] = useState<'append' | 'replace'>('append');
 
@@ -308,7 +311,7 @@ export const CustomThemeModal: React.FC<CustomThemeModalProps> = ({
       setStagedCahBlack((prev) => [...prev, ...preset.blackCards]);
       setStagedCahWhite((prev) => [...prev, ...preset.whiteCards]);
     }
-    setImportFeedback({ msg: `Pack "${preset.title}" carregado com sucesso!`, type: 'success' });
+    setImportFeedback({ msg: t('custom.pack_loaded', { title: preset.title }), type: 'success' });
   };
 
   // Inserir modelo de exemplo no import
@@ -355,7 +358,7 @@ export const CustomThemeModal: React.FC<CustomThemeModalProps> = ({
     setImportFeedback(null);
     const trimmed = importText.trim();
     if (!trimmed) {
-      setImportFeedback({ msg: 'Cole um texto ou JSON para importar.', type: 'error' });
+      setImportFeedback({ msg: t('custom.paste_first'), type: 'error' });
       return;
     }
 
@@ -367,7 +370,7 @@ export const CustomThemeModal: React.FC<CustomThemeModalProps> = ({
         if (gameType === 'itto') {
           const list = Array.isArray(parsed) ? parsed : parsed.themes || [];
           const valid = list.filter((item: any) => item.title && (item.min_label || item.minLabel));
-          if (valid.length === 0) throw new Error('Nenhum tema de Itto válido encontrado.');
+          if (valid.length === 0) throw new Error(t('custom.no_valid_itto'));
           const formatted = valid.map((item: any) => ({
             title: item.title,
             min_label: item.min_label || item.minLabel || 'Mínimo',
@@ -375,7 +378,7 @@ export const CustomThemeModal: React.FC<CustomThemeModalProps> = ({
             category: item.category || 'Personalizado',
           }));
           setStagedIttoThemes((prev) => [...prev, ...formatted]);
-          setImportFeedback({ msg: `${formatted.length} tema(s) importado(s) com sucesso!`, type: 'success' });
+          setImportFeedback({ msg: t('custom.imported_themes', { count: formatted.length }), type: 'success' });
           setImportText('');
           return;
         }
@@ -383,14 +386,14 @@ export const CustomThemeModal: React.FC<CustomThemeModalProps> = ({
         if (gameType === 'wavelength') {
           const list = Array.isArray(parsed) ? parsed : parsed.themes || [];
           const valid = list.filter((item: any) => item.left && item.right);
-          if (valid.length === 0) throw new Error('Nenhum tema de Wavelength válido encontrado.');
+          if (valid.length === 0) throw new Error(t('custom.no_valid_wave'));
           const formatted = valid.map((item: any) => ({
             left: item.left,
             right: item.right,
             category: item.category || 'Personalizado',
           }));
           setStagedWaveThemes((prev) => [...prev, ...formatted]);
-          setImportFeedback({ msg: `${formatted.length} espectro(s) importado(s) com sucesso!`, type: 'success' });
+          setImportFeedback({ msg: t('custom.imported_spectra', { count: formatted.length }), type: 'success' });
           setImportText('');
           return;
         }
@@ -427,7 +430,7 @@ export const CustomThemeModal: React.FC<CustomThemeModalProps> = ({
           }
 
           setImportFeedback({
-            msg: `${bAdded} carta(s) preta(s) e ${wAdded} branca(s) importadas!`,
+            msg: t('custom.imported_cards', { black: bAdded, white: wAdded }),
             type: 'success',
           });
           setImportText('');
@@ -451,7 +454,7 @@ export const CustomThemeModal: React.FC<CustomThemeModalProps> = ({
         }
         if (parsedThemes.length > 0) {
           setStagedWaveThemes((prev) => [...prev, ...parsedThemes]);
-          setImportFeedback({ msg: `${parsedThemes.length} tema(s) importado(s)!`, type: 'success' });
+          setImportFeedback({ msg: t('custom.imported_themes', { count: parsedThemes.length }), type: 'success' });
           setImportText('');
           return;
         }
@@ -472,7 +475,7 @@ export const CustomThemeModal: React.FC<CustomThemeModalProps> = ({
         }
         if (parsedThemes.length > 0) {
           setStagedIttoThemes((prev) => [...prev, ...parsedThemes]);
-          setImportFeedback({ msg: `${parsedThemes.length} tema(s) importado(s)!`, type: 'success' });
+          setImportFeedback({ msg: t('custom.imported_themes', { count: parsedThemes.length }), type: 'success' });
           setImportText('');
           return;
         }
@@ -490,7 +493,7 @@ export const CustomThemeModal: React.FC<CustomThemeModalProps> = ({
           setStagedCahBlack((prev) => [...prev, ...bCards]);
           setStagedCahWhite((prev) => [...prev, ...wCards]);
           setImportFeedback({
-            msg: `${bCards.length} carta(s) preta(s) e ${wCards.length} branca(s) importadas!`,
+            msg: t('custom.imported_cards', { black: bCards.length, white: wCards.length }),
             type: 'success',
           });
           setImportText('');
@@ -498,9 +501,9 @@ export const CustomThemeModal: React.FC<CustomThemeModalProps> = ({
         }
       }
 
-      throw new Error('Formato não reconhecido. Use a opção "Inserir Modelo" para ver a estrutura esperada.');
+      throw new Error(t('custom.unknown_format'));
     } catch (err: any) {
-      setImportFeedback({ msg: err.message || 'Erro ao processar dados.', type: 'error' });
+      setImportFeedback({ msg: err.message || t('custom.process_error'), type: 'error' });
     }
   };
 
@@ -552,578 +555,364 @@ export const CustomThemeModal: React.FC<CustomThemeModalProps> = ({
       ? stagedWaveThemes.length
       : stagedCahBlack.length + stagedCahWhite.length;
 
+  const tabs = [
+    { id: 'manual' as const, label: t('custom.tab_manual'), icon: <Plus size={16} /> },
+    { id: 'presets' as const, label: t('custom.tab_presets'), icon: <Package size={16} /> },
+    { id: 'import' as const, label: t('custom.tab_import'), icon: <Upload size={16} /> },
+  ];
+
+  const presetList: any[] = gameType === 'itto' ? ITTO_PRESETS : gameType === 'wavelength' ? WAVELENGTH_PRESETS : CAH_PRESETS;
+  const presetCount = (p: any) =>
+    gameType === 'itto'
+      ? t('custom.themes_count', { count: p.themes.length })
+      : gameType === 'wavelength'
+      ? t('custom.spectra_count', { count: p.themes.length })
+      : t('custom.cards_count', { black: p.blackCards.length, white: p.whiteCards.length });
+
+  const clearAll = () => {
+    setStagedIttoThemes([]);
+    setStagedWaveThemes([]);
+    setStagedCahBlack([]);
+    setStagedCahWhite([]);
+  };
+
+  const removeBtn = (onClick: () => void) => (
+    <button type="button" onClick={onClick} className="icon-btn border-transparent text-muted hover:text-rose-300" aria-label={t('custom.remove')}>
+      <Trash2 size={16} />
+    </button>
+  );
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/75" onClick={onClose}>
       <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 15 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 15 }}
-        className="w-full max-w-2xl max-h-[92dvh] bg-slate-900 border border-white/10 rounded-3xl shadow-2xl flex flex-col overflow-hidden text-white"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="custom-modal-title"
+        onClick={(e) => e.stopPropagation()}
+        initial={{ opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 24 }}
+        transition={{ duration: 0.25 }}
+        className="w-full sm:max-w-2xl max-h-[94dvh] bg-surface border border-line-strong rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden text-body select-text"
       >
-        {/* Header do Modal */}
-        <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between bg-black/40">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center text-xl shadow-lg">
-              ✨
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-base sm:text-lg font-black tracking-wide uppercase text-white">
-                  Temas Personalizados
-                </h3>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 uppercase">
-                  {gameType.toUpperCase()}
-                </span>
-                {existingCustomCount > 0 && (
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                    {existingCustomCount} na sala
-                  </span>
-                )}
+        <div className="px-5 py-4 border-b border-line flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3 min-w-0">
+            <span className="w-11 h-11 rounded-2xl bg-accent-soft text-accent flex items-center justify-center shrink-0" aria-hidden="true">
+              <Sparkles size={22} />
+            </span>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 id="custom-modal-title" className="font-display font-bold text-xl text-ink">
+                  {gameType === 'cah' ? t('custom.title_cards') : t('custom.title_themes')}
+                </h2>
+                {existingCustomCount > 0 && <span className="chip chip-success">{t('custom.in_room', { count: existingCustomCount })}</span>}
               </div>
-              <p className="text-xs text-gray-400">
-                Crie, importe ou escolha packs prontos para a partida da sua sala.
-              </p>
+              <p className="text-sm text-muted mt-0.5">{t('custom.subtitle')}</p>
             </div>
           </div>
-
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition cursor-pointer"
-          >
-            <X size={18} />
+          <button type="button" onClick={onClose} className="icon-btn border-transparent" aria-label={t('game.close')}>
+            <X size={20} />
           </button>
         </div>
 
-        {/* Tab Selector */}
-        <div className="flex border-b border-white/10 bg-white/[0.02] px-4 pt-2 gap-2 text-xs font-bold">
-          <button
-            onClick={() => setActiveTab('manual')}
-            className={`px-4 py-2.5 rounded-t-xl transition-all flex items-center gap-2 cursor-pointer border-b-2 ${
-              activeTab === 'manual'
-                ? 'border-purple-500 text-purple-300 bg-white/5'
-                : 'border-transparent text-gray-400 hover:text-white'
-            }`}
-          >
-            <Plus size={14} />
-            <span>Criar Manual</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('presets')}
-            className={`px-4 py-2.5 rounded-t-xl transition-all flex items-center gap-2 cursor-pointer border-b-2 ${
-              activeTab === 'presets'
-                ? 'border-purple-500 text-purple-300 bg-white/5'
-                : 'border-transparent text-gray-400 hover:text-white'
-            }`}
-          >
-            <Package size={14} />
-            <span>Packs Prontos</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('import')}
-            className={`px-4 py-2.5 rounded-t-xl transition-all flex items-center gap-2 cursor-pointer border-b-2 ${
-              activeTab === 'import'
-                ? 'border-purple-500 text-purple-300 bg-white/5'
-                : 'border-transparent text-gray-400 hover:text-white'
-            }`}
-          >
-            <Upload size={14} />
-            <span>Importar JSON / Texto</span>
-          </button>
+        <div role="tablist" className="flex border-b border-line px-2 overflow-x-auto">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`min-h-12 px-4 flex items-center gap-2 text-sm font-semibold border-b-2 whitespace-nowrap cursor-pointer transition-colors ${
+                activeTab === tab.id ? 'border-accent text-ink' : 'border-transparent text-muted hover:text-body'
+              }`}
+            >
+              {tab.icon}
+              {tab.label}
+            </button>
+          ))}
         </div>
 
-        {/* Modal Body Container */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 custom-scrollbar">
-          {/* TAB 1: CRIAR MANUALMENTE */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
           {activeTab === 'manual' && (
             <div className="space-y-4">
-              {/* Form específico para cada jogo */}
               {gameType === 'itto' && (
-                <form onSubmit={handleAddItto} className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-3">
-                  <div className="text-xs font-bold text-purple-300 uppercase tracking-wider">
-                    Novo Tema para Itto (1 a 100)
+                <form onSubmit={handleAddItto} className="p-4 rounded-2xl bg-ground border border-line space-y-3">
+                  <h3 className="label-caps">{t('custom.itto_new')}</h3>
+                  <div className="space-y-1.5">
+                    <label htmlFor="itto-title" className="text-sm font-semibold text-ink">{t('custom.itto_title_label')}</label>
+                    <input id="itto-title" type="text" placeholder={t('custom.itto_title_ph')} value={ittoTitle} onChange={(e) => setIttoTitle(e.target.value)} className="field" />
                   </div>
-                  <div>
-                    <label className="text-[11px] text-gray-400 block mb-1 font-semibold">
-                      Título do Tema / Pergunta:
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Ex: Animais mais assustadores"
-                      value={ittoTitle}
-                      onChange={(e) => setIttoTitle(e.target.value)}
-                      className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-purple-500"
-                    />
-                  </div>
-
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-[11px] text-emerald-400 block mb-1 font-semibold">
-                        Mínimo (Valor 1):
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="Ex: Formiga bebê fofa"
-                        value={ittoMin}
-                        onChange={(e) => setIttoMin(e.target.value)}
-                        className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500"
-                      />
+                    <div className="space-y-1.5">
+                      <label htmlFor="itto-min" className="text-sm font-semibold text-ink">{t('custom.itto_min')}</label>
+                      <input id="itto-min" type="text" placeholder={t('custom.itto_min_ph')} value={ittoMin} onChange={(e) => setIttoMin(e.target.value)} className="field" />
                     </div>
-                    <div>
-                      <label className="text-[11px] text-rose-400 block mb-1 font-semibold">
-                        Máximo (Valor 100):
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="Ex: Tubarão branco faminto"
-                        value={ittoMax}
-                        onChange={(e) => setIttoMax(e.target.value)}
-                        className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-rose-500"
-                      />
+                    <div className="space-y-1.5">
+                      <label htmlFor="itto-max" className="text-sm font-semibold text-ink">{t('custom.itto_max')}</label>
+                      <input id="itto-max" type="text" placeholder={t('custom.itto_max_ph')} value={ittoMax} onChange={(e) => setIttoMax(e.target.value)} className="field" />
                     </div>
                   </div>
-
-                  <div className="flex items-center justify-between gap-3 pt-1">
-                    <input
-                      type="text"
-                      placeholder="Categoria (opcional, ex: Geek, Cinema)"
-                      value={ittoCategory}
-                      onChange={(e) => setIttoCategory(e.target.value)}
-                      className="w-1/2 px-3 py-1.5 bg-black/30 border border-white/10 rounded-xl text-xs text-gray-300 focus:outline-none"
-                    />
-                    <button
-                      type="submit"
-                      disabled={!ittoTitle.trim() || !ittoMin.trim() || !ittoMax.trim()}
-                      className="px-4 py-2 bg-purple-600 hover:bg-purple-500 disabled:opacity-40 text-white font-bold text-xs rounded-xl transition cursor-pointer"
-                    >
-                      + Adicionar à Lista
+                  <div className="flex flex-col sm:flex-row sm:items-end gap-3">
+                    <div className="space-y-1.5 flex-1">
+                      <label htmlFor="itto-cat" className="text-sm font-semibold text-ink">{t('custom.category')}</label>
+                      <input id="itto-cat" type="text" placeholder={t('custom.category_ph')} value={ittoCategory} onChange={(e) => setIttoCategory(e.target.value)} className="field" />
+                    </div>
+                    <button type="submit" disabled={!ittoTitle.trim() || !ittoMin.trim() || !ittoMax.trim()} className="btn btn-primary">
+                      <Plus size={18} />
+                      {t('custom.add')}
                     </button>
                   </div>
                 </form>
               )}
 
               {gameType === 'wavelength' && (
-                <form onSubmit={handleAddWave} className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-3">
-                  <div className="text-xs font-bold text-cyan-300 uppercase tracking-wider">
-                    Novo Espectro para Wavelength (0% a 100%)
-                  </div>
+                <form onSubmit={handleAddWave} className="p-4 rounded-2xl bg-ground border border-line space-y-3">
+                  <h3 className="label-caps">{t('custom.wave_new')}</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-[11px] text-cyan-400 block mb-1 font-semibold">
-                        Extremo Esquerdo (0%):
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="Ex: Filme Ruim"
-                        value={waveLeft}
-                        onChange={(e) => setWaveLeft(e.target.value)}
-                        className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-cyan-500"
-                      />
+                    <div className="space-y-1.5">
+                      <label htmlFor="wave-left" className="text-sm font-semibold text-ink">{t('custom.wave_left')}</label>
+                      <input id="wave-left" type="text" placeholder={t('custom.wave_left_ph')} value={waveLeft} onChange={(e) => setWaveLeft(e.target.value)} className="field" />
                     </div>
-                    <div>
-                      <label className="text-[11px] text-indigo-400 block mb-1 font-semibold">
-                        Extremo Direito (100%):
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="Ex: Obra-Prima do Cinema"
-                        value={waveRight}
-                        onChange={(e) => setWaveRight(e.target.value)}
-                        className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-indigo-500"
-                      />
+                    <div className="space-y-1.5">
+                      <label htmlFor="wave-right" className="text-sm font-semibold text-ink">{t('custom.wave_right')}</label>
+                      <input id="wave-right" type="text" placeholder={t('custom.wave_right_ph')} value={waveRight} onChange={(e) => setWaveRight(e.target.value)} className="field" />
                     </div>
                   </div>
-
-                  <div className="flex items-center justify-between gap-3 pt-1">
-                    <input
-                      type="text"
-                      placeholder="Categoria (opcional, ex: Pop, Comida)"
-                      value={waveCategory}
-                      onChange={(e) => setWaveCategory(e.target.value)}
-                      className="w-1/2 px-3 py-1.5 bg-black/30 border border-white/10 rounded-xl text-xs text-gray-300 focus:outline-none"
-                    />
-                    <button
-                      type="submit"
-                      disabled={!waveLeft.trim() || !waveRight.trim()}
-                      className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40 text-white font-bold text-xs rounded-xl transition cursor-pointer"
-                    >
-                      + Adicionar à Lista
+                  <div className="flex flex-col sm:flex-row sm:items-end gap-3">
+                    <div className="space-y-1.5 flex-1">
+                      <label htmlFor="wave-cat" className="text-sm font-semibold text-ink">{t('custom.category')}</label>
+                      <input id="wave-cat" type="text" placeholder={t('custom.category_ph')} value={waveCategory} onChange={(e) => setWaveCategory(e.target.value)} className="field" />
+                    </div>
+                    <button type="submit" disabled={!waveLeft.trim() || !waveRight.trim()} className="btn btn-primary">
+                      <Plus size={18} />
+                      {t('custom.add')}
                     </button>
                   </div>
                 </form>
               )}
 
               {gameType === 'cah' && (
-                <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="text-xs font-bold text-amber-300 uppercase tracking-wider">
-                      Criar Carta para Cards Against Humanity
-                    </div>
-                    <div className="flex gap-1 bg-black/40 p-1 rounded-xl">
+                <form onSubmit={handleAddCah} className="p-4 rounded-2xl bg-ground border border-line space-y-3">
+                  <div role="radiogroup" aria-label={t('custom.cah_new')} className="grid grid-cols-2 gap-2">
+                    {(['black', 'white'] as const).map((type) => (
                       <button
+                        key={type}
                         type="button"
-                        onClick={() => setCahCardType('black')}
-                        className={`px-3 py-1 text-xs font-bold rounded-lg transition ${
-                          cahCardType === 'black'
-                            ? 'bg-zinc-800 text-white shadow'
-                            : 'text-gray-400 hover:text-white'
-                        }`}
+                        role="radio"
+                        aria-checked={cahCardType === type}
+                        onClick={() => setCahCardType(type)}
+                        className={`btn btn-sm ${cahCardType === type ? 'btn-primary' : 'btn-secondary'}`}
                       >
-                        ⬛ Carta Preta (Pergunta)
+                        <span className={`w-3 h-3 rounded-sm border ${type === 'black' ? 'bg-black border-white/50' : 'bg-white border-zinc-400'}`} aria-hidden="true" />
+                        {type === 'black' ? t('custom.cah_black') : t('custom.cah_white')}
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => setCahCardType('white')}
-                        className={`px-3 py-1 text-xs font-bold rounded-lg transition ${
-                          cahCardType === 'white'
-                            ? 'bg-white text-black shadow'
-                            : 'text-gray-400 hover:text-white'
-                        }`}
-                      >
-                        ⬜ Carta Branca (Resposta)
-                      </button>
-                    </div>
+                    ))}
                   </div>
 
-                  <form onSubmit={handleAddCah} className="space-y-3">
-                    {cahCardType === 'black' ? (
-                      <>
-                        <div>
-                          <label className="text-[11px] text-gray-400 block mb-1 font-semibold">
-                            Texto da Carta Preta (use <code className="text-amber-400 font-mono">____</code> para os
-                            espaços em branco):
-                          </label>
-                          <textarea
-                            rows={2}
-                            placeholder="Ex: Hoje o chefe cancelou a reunião por causa de ____."
-                            value={cahBlackText}
-                            onChange={(e) => setCahBlackText(e.target.value)}
-                            className="w-full px-3 py-2 bg-black/60 border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400"
-                          />
-                        </div>
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-gray-400 text-[11px]">
-                            Quantidade de respostas exigidas (Pick):
-                          </span>
-                          <div className="flex gap-1">
-                            {[1, 2, 3].map((num) => (
-                              <button
-                                key={num}
-                                type="button"
-                                onClick={() => setCahBlackPick(num)}
-                                className={`px-2.5 py-1 rounded-lg font-bold text-xs transition ${
-                                  cahBlackPick === num
-                                    ? 'bg-amber-400 text-black'
-                                    : 'bg-black/40 text-gray-400'
-                                }`}
-                              >
-                                {num}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      </>
-                    ) : (
-                      <div>
-                        <label className="text-[11px] text-gray-400 block mb-1 font-semibold">
-                          Texto da Carta Branca (Resposta absurda ou cômica):
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="Ex: Um pastel com 90% de vento e 10% de carne"
-                          value={cahWhiteText}
-                          onChange={(e) => setCahWhiteText(e.target.value)}
-                          className="w-full px-3 py-2 bg-black/60 border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-white"
+                  {cahCardType === 'black' ? (
+                    <>
+                      <div className="space-y-1.5">
+                        <label htmlFor="cah-black" className="text-sm font-semibold text-ink">{t('custom.cah_black_label')}</label>
+                        <textarea
+                          id="cah-black"
+                          rows={2}
+                          placeholder={t('custom.cah_black_ph')}
+                          value={cahBlackText}
+                          onChange={(e) => setCahBlackText(e.target.value)}
+                          className="field py-2.5 min-h-20"
                         />
                       </div>
-                    )}
-
-                    <div className="flex justify-end pt-1">
-                      <button
-                        type="submit"
-                        disabled={
-                          cahCardType === 'black' ? !cahBlackText.trim() : !cahWhiteText.trim()
-                        }
-                        className="px-4 py-2 bg-amber-500 hover:bg-amber-400 disabled:opacity-40 text-black font-black text-xs uppercase rounded-xl transition cursor-pointer"
-                      >
-                        + Adicionar à Lista
-                      </button>
+                      <fieldset className="flex items-center justify-between gap-3">
+                        <legend className="sr-only">{t('custom.cah_pick')}</legend>
+                        <span className="text-sm text-body">{t('custom.cah_pick')}</span>
+                        <div className="flex gap-2">
+                          {[1, 2, 3].map((num) => (
+                            <button
+                              key={num}
+                              type="button"
+                              aria-pressed={cahBlackPick === num}
+                              onClick={() => setCahBlackPick(num)}
+                              className={`w-11 h-11 rounded-xl font-bold cursor-pointer ${cahBlackPick === num ? 'bg-accent text-accent-ink' : 'bg-raised text-body'}`}
+                            >
+                              {num}
+                            </button>
+                          ))}
+                        </div>
+                      </fieldset>
+                    </>
+                  ) : (
+                    <div className="space-y-1.5">
+                      <label htmlFor="cah-white" className="text-sm font-semibold text-ink">{t('custom.cah_white_label')}</label>
+                      <input id="cah-white" type="text" placeholder={t('custom.cah_white_ph')} value={cahWhiteText} onChange={(e) => setCahWhiteText(e.target.value)} className="field" />
                     </div>
-                  </form>
-                </div>
+                  )}
+
+                  <div className="flex justify-end">
+                    <button type="submit" disabled={cahCardType === 'black' ? !cahBlackText.trim() : !cahWhiteText.trim()} className="btn btn-primary">
+                      <Plus size={18} />
+                      {t('custom.add')}
+                    </button>
+                  </div>
+                </form>
               )}
 
-              {/* Lista de itens staged */}
               <div className="space-y-2">
-                <div className="flex items-center justify-between text-xs text-gray-400 px-1">
-                  <span>Itens Prontos para Adicionar ({totalStagedCount})</span>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="label-caps">{t('custom.staged', { count: totalStagedCount })}</span>
                   {totalStagedCount > 0 && (
-                    <button
-                      onClick={() => {
-                        setStagedIttoThemes([]);
-                        setStagedWaveThemes([]);
-                        setStagedCahBlack([]);
-                        setStagedCahWhite([]);
-                      }}
-                      className="text-rose-400 hover:text-rose-300 text-[11px] flex items-center gap-1 cursor-pointer"
-                    >
-                      <Trash2 size={12} /> Limpar lista
+                    <button type="button" onClick={clearAll} className="btn btn-ghost btn-sm text-rose-300">
+                      <Trash2 size={16} />
+                      {t('custom.clear')}
                     </button>
                   )}
                 </div>
 
-                <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1 custom-scrollbar">
-                  {gameType === 'itto' && stagedIttoThemes.map((item, idx) => (
-                    <div
-                      key={idx}
-                      className="p-3 bg-black/40 border border-white/10 rounded-xl flex items-center justify-between text-xs"
-                    >
-                      <div className="space-y-1 truncate pr-2">
-                        <div className="font-bold text-white truncate">{item.title}</div>
-                        <div className="text-[10px] text-gray-400 flex items-center gap-2">
-                          <span className="text-emerald-400">1: {item.min_label}</span>
-                          <span>&bull;</span>
-                          <span className="text-rose-400">100: {item.max_label}</span>
-                          {item.category && <span className="text-purple-300 font-mono">[{item.category}]</span>}
+                <ul className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                  {gameType === 'itto' &&
+                    stagedIttoThemes.map((item, idx) => (
+                      <li key={idx} className="pl-3 pr-1 py-1.5 bg-ground border border-line rounded-xl flex items-center justify-between gap-2">
+                        <div className="min-w-0 py-1">
+                          <div className="font-bold text-sm text-ink truncate">{item.title}</div>
+                          <div className="text-xs text-muted truncate">
+                            1: {item.min_label} · 100: {item.max_label}
+                            {item.category && ` · ${item.category}`}
+                          </div>
                         </div>
-                      </div>
-                      <button
-                        onClick={() => setStagedIttoThemes((prev) => prev.filter((_, i) => i !== idx))}
-                        className="text-gray-500 hover:text-rose-400 p-1 cursor-pointer"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  ))}
+                        {removeBtn(() => setStagedIttoThemes((prev) => prev.filter((_, i) => i !== idx)))}
+                      </li>
+                    ))}
 
-                  {gameType === 'wavelength' && stagedWaveThemes.map((item, idx) => (
-                    <div
-                      key={idx}
-                      className="p-3 bg-black/40 border border-white/10 rounded-xl flex items-center justify-between text-xs"
-                    >
-                      <div className="flex items-center gap-2 font-bold truncate pr-2">
-                        <span className="text-cyan-400 truncate">{item.left}</span>
-                        <span className="text-gray-500">&larr; &rarr;</span>
-                        <span className="text-indigo-300 truncate">{item.right}</span>
-                        {item.category && <span className="text-gray-500 text-[10px] font-mono">[{item.category}]</span>}
-                      </div>
-                      <button
-                        onClick={() => setStagedWaveThemes((prev) => prev.filter((_, i) => i !== idx))}
-                        className="text-gray-500 hover:text-rose-400 p-1 cursor-pointer"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  ))}
+                  {gameType === 'wavelength' &&
+                    stagedWaveThemes.map((item, idx) => (
+                      <li key={idx} className="pl-3 pr-1 py-1.5 bg-ground border border-line rounded-xl flex items-center justify-between gap-2">
+                        <div className="min-w-0 py-1 text-sm">
+                          <span className="font-bold text-ink">{item.left}</span>
+                          <span className="text-muted"> ↔ </span>
+                          <span className="font-bold text-ink">{item.right}</span>
+                          {item.category && <span className="text-xs text-muted"> · {item.category}</span>}
+                        </div>
+                        {removeBtn(() => setStagedWaveThemes((prev) => prev.filter((_, i) => i !== idx)))}
+                      </li>
+                    ))}
 
                   {gameType === 'cah' && (
                     <>
                       {stagedCahBlack.map((item, idx) => (
-                        <div
-                          key={`b_${idx}`}
-                          className="p-3 bg-zinc-950 border border-zinc-800 rounded-xl flex items-center justify-between text-xs"
-                        >
-                          <div className="truncate pr-2">
-                            <span className="font-bold text-white truncate">{item.text}</span>
-                            <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-300 font-mono">
-                              Pick: {item.pick}
-                            </span>
+                        <li key={`b_${idx}`} className="pl-3 pr-1 py-1.5 bg-black border border-zinc-700 rounded-xl flex items-center justify-between gap-2">
+                          <div className="min-w-0 py-1 text-sm text-white">
+                            <span className="font-bold">{item.text}</span>
+                            <span className="ml-2 chip">{t('custom.pick_n', { count: item.pick })}</span>
                           </div>
-                          <button
-                            onClick={() => setStagedCahBlack((prev) => prev.filter((_, i) => i !== idx))}
-                            className="text-gray-500 hover:text-rose-400 p-1 cursor-pointer"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
+                          {removeBtn(() => setStagedCahBlack((prev) => prev.filter((_, i) => i !== idx)))}
+                        </li>
                       ))}
                       {stagedCahWhite.map((item, idx) => (
-                        <div
-                          key={`w_${idx}`}
-                          className="p-3 bg-white/10 border border-white/20 rounded-xl flex items-center justify-between text-xs text-white"
-                        >
-                          <span className="truncate pr-2 font-medium">{item.text}</span>
-                          <button
-                            onClick={() => setStagedCahWhite((prev) => prev.filter((_, i) => i !== idx))}
-                            className="text-gray-400 hover:text-rose-400 p-1 cursor-pointer"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
+                        <li key={`w_${idx}`} className="pl-3 pr-1 py-1.5 bg-white text-slate-900 rounded-xl flex items-center justify-between gap-2">
+                          <span className="min-w-0 py-1 text-sm font-semibold">{item.text}</span>
+                          {removeBtn(() => setStagedCahWhite((prev) => prev.filter((_, i) => i !== idx)))}
+                        </li>
                       ))}
                     </>
                   )}
 
                   {totalStagedCount === 0 && (
-                    <div className="text-center py-6 text-gray-500 text-xs italic bg-white/[0.02] border border-dashed border-white/10 rounded-2xl">
-                      Nenhum item adicionado ainda. Preencha o formulário acima ou selecione um Pack Pronto.
-                    </div>
+                    <li className="text-center py-6 px-4 text-sm text-muted border border-dashed border-line-strong rounded-2xl">{t('custom.empty')}</li>
                   )}
-                </div>
+                </ul>
               </div>
             </div>
           )}
 
-          {/* TAB 2: PACKS PRONTOS */}
           {activeTab === 'presets' && (
             <div className="space-y-3">
-              <p className="text-xs text-gray-400">
-                Adicione coleções temáticas testadas com 1 clique para enriquecer a partida imediatamente:
-              </p>
-
-              <div className="grid grid-cols-1 gap-3">
-                {gameType === 'itto' && ITTO_PRESETS.map((p) => (
-                  <div
-                    key={p.id}
-                    className="p-4 rounded-2xl bg-white/5 border border-white/10 hover:border-purple-500/40 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-                  >
-                    <div>
-                      <div className="font-bold text-sm text-purple-300">{p.title}</div>
-                      <p className="text-xs text-gray-400 mt-0.5">{p.desc}</p>
-                      <div className="text-[10px] text-purple-400/80 font-mono mt-1">
-                        {p.themes.length} temas inclusos
-                      </div>
+              <p className="text-sm text-body">{t('custom.presets_intro')}</p>
+              <ul className="grid grid-cols-1 gap-3">
+                {presetList.map((p) => (
+                  <li key={p.id} className="p-4 rounded-2xl bg-ground border border-line hover:border-accent-line transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <h3 className="font-bold text-ink">{p.title}</h3>
+                      <p className="text-sm text-muted mt-0.5">{p.desc}</p>
+                      <span className="chip mt-2">{presetCount(p)}</span>
                     </div>
-                    <button
-                      onClick={() => handleLoadPreset(p)}
-                      className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded-xl shrink-0 transition cursor-pointer"
-                    >
-                      + Carregar Pack
+                    <button type="button" onClick={() => handleLoadPreset(p)} className="btn btn-primary btn-sm shrink-0">
+                      <Plus size={16} />
+                      {t('custom.load_pack')}
                     </button>
-                  </div>
+                  </li>
                 ))}
-
-                {gameType === 'wavelength' && WAVELENGTH_PRESETS.map((p) => (
-                  <div
-                    key={p.id}
-                    className="p-4 rounded-2xl bg-white/5 border border-white/10 hover:border-cyan-500/40 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-                  >
-                    <div>
-                      <div className="font-bold text-sm text-cyan-300">{p.title}</div>
-                      <p className="text-xs text-gray-400 mt-0.5">{p.desc}</p>
-                      <div className="text-[10px] text-cyan-400/80 font-mono mt-1">
-                        {p.themes.length} espectros inclusos
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => handleLoadPreset(p)}
-                      className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs rounded-xl shrink-0 transition cursor-pointer"
-                    >
-                      + Carregar Pack
-                    </button>
-                  </div>
-                ))}
-
-                {gameType === 'cah' && CAH_PRESETS.map((p) => (
-                  <div
-                    key={p.id}
-                    className="p-4 rounded-2xl bg-white/5 border border-white/10 hover:border-amber-500/40 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-                  >
-                    <div>
-                      <div className="font-bold text-sm text-amber-300">{p.title}</div>
-                      <p className="text-xs text-gray-400 mt-0.5">{p.desc}</p>
-                      <div className="text-[10px] text-amber-400/80 font-mono mt-1">
-                        {p.blackCards.length} pretas &bull; {p.whiteCards.length} brancas
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => handleLoadPreset(p)}
-                      className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-black font-black text-xs uppercase rounded-xl shrink-0 transition cursor-pointer"
-                    >
-                      + Carregar Pack
-                    </button>
-                  </div>
-                ))}
-              </div>
+              </ul>
+              {importFeedback && importFeedback.type === 'success' && (
+                <p role="status" className="p-3 rounded-xl border text-sm flex items-center gap-2 bg-emerald-950 border-emerald-700 text-emerald-100">
+                  <Check size={16} />
+                  {importFeedback.msg}
+                </p>
+              )}
             </div>
           )}
 
-          {/* TAB 3: IMPORTAR JSON / TEXTO */}
           {activeTab === 'import' && (
             <div className="space-y-3">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-gray-400">Cole seu JSON ou texto com linhas personalizadas:</span>
-                <button
-                  type="button"
-                  onClick={handleInsertTemplate}
-                  className="text-purple-400 hover:text-purple-300 font-bold cursor-pointer text-[11px]"
-                >
-                  Inserir Modelo Exemplo
+              <div className="flex items-center justify-between gap-2">
+                <label htmlFor="custom-import" className="text-sm text-body">{t('custom.import_intro')}</label>
+                <button type="button" onClick={handleInsertTemplate} className="btn btn-ghost btn-sm text-accent">
+                  {t('custom.insert_template')}
                 </button>
               </div>
-
               <textarea
+                id="custom-import"
                 rows={8}
-                placeholder="Cole JSON ou linhas no formato de texto..."
+                placeholder={t('custom.import_ph')}
                 value={importText}
                 onChange={(e) => setImportText(e.target.value)}
-                className="w-full p-3 bg-black/60 border border-white/10 rounded-2xl text-xs font-mono text-gray-200 focus:outline-none focus:border-purple-500 custom-scrollbar"
+                className="field py-3 font-mono text-sm min-h-48"
               />
-
               {importFeedback && (
-                <div
-                  className={`p-3 rounded-xl border text-xs flex items-center gap-2 ${
-                    importFeedback.type === 'success'
-                      ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-300'
-                      : 'bg-rose-950/40 border-rose-500/40 text-rose-300'
+                <p
+                  role={importFeedback.type === 'error' ? 'alert' : 'status'}
+                  className={`p-3 rounded-xl border text-sm flex items-center gap-2 ${
+                    importFeedback.type === 'success' ? 'bg-emerald-950 border-emerald-700 text-emerald-100' : 'bg-rose-950 border-rose-700 text-rose-100'
                   }`}
                 >
-                  {importFeedback.type === 'success' ? <Check size={14} /> : <AlertCircle size={14} />}
-                  <span>{importFeedback.msg}</span>
-                </div>
+                  {importFeedback.type === 'success' ? <Check size={16} /> : <AlertCircle size={16} />}
+                  {importFeedback.msg}
+                </p>
               )}
-
-              <div className="flex items-center justify-between pt-1">
-                <button
-                  type="button"
-                  onClick={handleExport}
-                  disabled={totalStagedCount === 0}
-                  className="px-3 py-2 bg-white/5 hover:bg-white/10 disabled:opacity-30 border border-white/10 text-xs font-bold rounded-xl flex items-center gap-1.5 transition cursor-pointer"
-                >
-                  <Download size={14} /> Exportar JSON
+              <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-2">
+                <button type="button" onClick={handleExport} disabled={totalStagedCount === 0} className="btn btn-secondary btn-sm">
+                  <Download size={16} />
+                  {t('custom.export')}
                 </button>
-
-                <button
-                  type="button"
-                  onClick={handleProcessImport}
-                  className="px-5 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded-xl shadow transition cursor-pointer"
-                >
-                  Validar e Adicionar à Lista
+                <button type="button" onClick={handleProcessImport} className="btn btn-primary">
+                  {t('custom.validate')}
                 </button>
               </div>
             </div>
           )}
         </div>
 
-        {/* Footer do Modal com Salvar */}
-        <div className="px-5 py-4 border-t border-white/10 bg-black/50 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-xs text-gray-400">
-            <span>Modo de envio:</span>
+        <div className="px-5 py-4 border-t border-line flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <label htmlFor="custom-save-mode" className="text-sm text-muted whitespace-nowrap">
+              {t('custom.save_mode')}
+            </label>
             <select
+              id="custom-save-mode"
               value={saveMode}
-              onChange={(e) => setSaveMode(e.target.value as any)}
-              className="bg-black/60 border border-white/10 text-white text-xs rounded-lg px-2 py-1 focus:outline-none"
+              onChange={(e) => setSaveMode(e.target.value as 'append' | 'replace')}
+              className="field min-h-10 py-0 w-auto text-sm"
             >
-              <option value="append">Somar aos temas da sala</option>
-              <option value="replace">Substituir todos os temas</option>
+              <option value="append">{t('custom.mode_append')}</option>
+              <option value="replace">{t('custom.mode_replace')}</option>
             </select>
           </div>
-
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <button
-              onClick={onClose}
-              className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-xs font-bold text-gray-300 transition cursor-pointer"
-            >
-              Cancelar
+          <div className="flex gap-2">
+            <button type="button" onClick={onClose} className="btn btn-secondary flex-1 sm:flex-initial">
+              {t('common.cancel')}
             </button>
-
-            <button
-              onClick={handleSaveToRoom}
-              disabled={totalStagedCount === 0}
-              className="flex-1 sm:flex-initial px-6 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:brightness-110 disabled:opacity-40 text-white text-xs font-black uppercase tracking-wider shadow-lg transition cursor-pointer"
-            >
-              Salvar na Sala ({totalStagedCount}) ✨
+            <button type="button" onClick={handleSaveToRoom} disabled={totalStagedCount === 0} className="btn btn-primary flex-1 sm:flex-initial">
+              <Check size={18} strokeWidth={3} />
+              {t('custom.save', { count: totalStagedCount })}
             </button>
           </div>
         </div>
