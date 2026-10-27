@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import i18n from '../i18n';
+import { freshToken } from './useAuthStore';
 
 export interface HanabiCard {
   id: string;
@@ -234,7 +235,7 @@ export const useHanabiStore = create<HanabiStore>((set, get) => ({
 
         reconnectTimeout = setTimeout(() => {
           if (lastConnParams) {
-            get().connect(lastConnParams.roomId, lastConnParams.token);
+            void freshToken(lastConnParams.token).then((tok) => lastConnParams && get().connect(lastConnParams.roomId, tok));
           }
         }, delayMs);
       } else if (currentAttempt >= 10) {
@@ -272,7 +273,7 @@ export const useHanabiStore = create<HanabiStore>((set, get) => ({
   manualReconnect: () => {
     if (lastConnParams) {
       set({ reconnectAttempt: 0, isReconnecting: true });
-      get().connect(lastConnParams.roomId, lastConnParams.token);
+      void freshToken(lastConnParams.token).then((tok) => lastConnParams && get().connect(lastConnParams.roomId, tok));
     }
   },
 

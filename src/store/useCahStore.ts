@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import i18n from '../i18n';
+import { freshToken } from './useAuthStore';
 import { cahAudio } from '../lib/audioEngine';
 
 export interface CahBlackCard {
@@ -281,7 +282,7 @@ export const useCahStore = create<CahStore>((set, get) => ({
 
         reconnectTimeout = setTimeout(() => {
           if (lastConnParams) {
-            get().connect(lastConnParams.roomId, lastConnParams.token);
+            void freshToken(lastConnParams.token).then((tok) => lastConnParams && get().connect(lastConnParams.roomId, tok));
           }
         }, delayMs);
       } else if (currentAttempt >= 10) {
@@ -320,7 +321,7 @@ export const useCahStore = create<CahStore>((set, get) => ({
   manualReconnect: () => {
     if (lastConnParams) {
       set({ reconnectAttempt: 0, isReconnecting: true });
-      get().connect(lastConnParams.roomId, lastConnParams.token);
+      void freshToken(lastConnParams.token).then((tok) => lastConnParams && get().connect(lastConnParams.roomId, tok));
     }
   },
 

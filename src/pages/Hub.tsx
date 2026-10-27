@@ -6,20 +6,21 @@ import { useAuthStore } from '../store/useAuthStore';
 import { LanguageSelector } from '../components/LanguageSelector';
 import { Avatar } from '../components/game/ui';
 import { api } from '../lib/api';
-import { AlertCircle, Gamepad2, Users, Plus, Loader2 } from 'lucide-react';
+import { AlertCircle, Users, Plus, Loader2 } from 'lucide-react';
 
 import ittoCover from '../assets/games/itto.jpg';
 import hanabiCover from '../assets/games/hanabi.jpg';
 import cahCover from '../assets/games/cah.jpg';
 import ludoCover from '../assets/games/ludo.jpg';
 import wavelengthCover from '../assets/games/wavelength.jpg';
+import whoamiCover from '../assets/games/whoami.svg';
 
 type Filter = 'all' | 'coop' | 'competitive' | 'large';
 
 interface GameConfig {
   slug: string;
   name: string;
-  accent: 'cyan' | 'sky' | 'violet' | 'amber' | 'zinc';
+  accent: 'cyan' | 'sky' | 'violet' | 'amber' | 'zinc' | 'pink';
   cover: string;
   players: string;
   categoryKey: string;
@@ -33,7 +34,17 @@ const GAMES: GameConfig[] = [
   { slug: 'itto', name: 'Itto', accent: 'violet', cover: ittoCover, players: '2–8', categoryKey: 'hub.cat_sync', tags: ['coop', 'large'] },
   { slug: 'ludo', name: 'Ludo', accent: 'amber', cover: ludoCover, players: '1–4', categoryKey: 'hub.cat_classic', tags: ['competitive'] },
   { slug: 'cah', name: '', accent: 'zinc', cover: cahCover, players: '3–12', categoryKey: 'hub.cat_humor', tags: ['competitive', 'large'] },
+  { slug: 'whoami', name: '', accent: 'pink', cover: whoamiCover, players: '2–12', categoryKey: 'hub.cat_deduction', tags: ['competitive', 'large'] },
 ];
+
+// Grade do desktop conforme quantos jogos aparecem: número ímpar ganha um destaque de duas linhas
+function desktopGrid(count: number): { grid: string; featured: boolean } {
+  if (count === 6) return { grid: 'lg:grid-cols-3 lg:grid-rows-2', featured: false };
+  if (count === 5) return { grid: 'lg:grid-cols-[1.35fr_1fr_1fr] lg:grid-rows-2', featured: true };
+  if (count === 4) return { grid: 'lg:grid-cols-2 lg:grid-rows-2', featured: false };
+  if (count === 3) return { grid: 'lg:grid-cols-[1.35fr_1fr] lg:grid-rows-2', featured: true };
+  return { grid: 'lg:grid-cols-2 lg:grid-rows-1', featured: false };
+}
 
 const FILTERS: Filter[] = ['all', 'coop', 'competitive', 'large'];
 
@@ -50,6 +61,7 @@ export function Hub() {
   const displayName = username || user?.email || '';
   const gameName = (g: GameConfig) => g.name || t(`hub.${g.slug}_title`);
   const visible = GAMES.filter((g) => filter === 'all' || g.tags.includes(filter));
+  const layout = desktopGrid(visible.length);
 
   const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,9 +123,7 @@ export function Hub() {
       <header className="sticky top-0 z-20 bg-ground/95 backdrop-blur border-b border-line">
         <div className="max-w-7xl mx-auto px-4 md:px-8 h-16 md:h-19 flex items-center justify-between gap-4 md:gap-8">
           <div className="flex items-center gap-3 shrink-0">
-            <span className="w-10 h-10 rounded-xl bg-[#2E1065] text-violet-300 flex items-center justify-center" aria-hidden="true">
-              <Gamepad2 size={22} />
-            </span>
+            <img src="/favicon.svg" alt="" className="w-10 h-10 shrink-0" aria-hidden="true" />
             <span className="font-display font-bold text-xl md:text-2xl tracking-wide text-ink">PARTY HUB</span>
           </div>
 
@@ -183,9 +193,9 @@ export function Hub() {
         </ul>
 
         {/* Desktop: destaque + grade */}
-        <ul className="hidden md:grid grid-cols-2 lg:grid-cols-[1.35fr_1fr_1fr] auto-rows-fr lg:grid-rows-2 lg:h-[max(620px,calc(100dvh-190px))] gap-5">
+        <ul className={`hidden md:grid grid-cols-2 ${layout.grid} auto-rows-fr lg:h-[max(620px,calc(100dvh-190px))] gap-5`}>
           {visible.map((g, i) => {
-            const featured = i === 0 && visible.length > 2;
+            const featured = i === 0 && layout.featured;
             return (
               <motion.li
                 layout

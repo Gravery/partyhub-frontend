@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import i18n from '../i18n';
+import { freshToken } from './useAuthStore';
 import { ittoAudio } from '../lib/audioEngine';
 
 interface Card {
@@ -306,7 +307,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
         reconnectTimeout = setTimeout(() => {
           if (lastConnParams) {
-            get().connect(lastConnParams.gameSlug, lastConnParams.roomId, lastConnParams.token);
+            void freshToken(lastConnParams.token).then((tok) => lastConnParams && get().connect(lastConnParams.gameSlug, lastConnParams.roomId, tok));
           }
         }, delayMs);
       } else if (currentAttempt >= 10) {
@@ -349,7 +350,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   manualReconnect: () => {
     if (lastConnParams) {
       set({ reconnectAttempt: 0, isReconnecting: true });
-      get().connect(lastConnParams.gameSlug, lastConnParams.roomId, lastConnParams.token);
+      void freshToken(lastConnParams.token).then((tok) => lastConnParams && get().connect(lastConnParams.gameSlug, lastConnParams.roomId, tok));
     }
   },
 

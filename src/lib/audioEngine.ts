@@ -467,3 +467,54 @@ export class CahSoundFX extends BaseSoundFX {
 export const hanabiAudio = new HanabiSoundFX();
 export const ittoAudio = new IttoSoundFX();
 export const cahAudio = new CahSoundFX();
+
+// ==========================================
+// QUEM SOU EU
+// ==========================================
+export class WhoAmISoundFX extends BaseSoundFX {
+  constructor() {
+    super('partyhub_sound_whoami');
+  }
+
+  private tone(freqs: number[], step: number, type: OscillatorType, volume: number, length: number) {
+    if (!this.enabled) return;
+    this.initCtx();
+    if (!this.ctx) return;
+    freqs.forEach((freq, idx) => {
+      if (!this.ctx) return;
+      const start = this.ctx.currentTime + idx * step;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, start);
+      gain.gain.setValueAtTime(volume, start);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + length);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(start);
+      osc.stop(start + length + 0.03);
+    });
+  }
+
+  // Pergunta enviada / hora de responder
+  playSubmit() {
+    this.tone([440, 660], 0.06, 'sine', 0.05, 0.2);
+  }
+
+  // Resposta "sim" chegou no backlog
+  playYes() {
+    this.tone([659.25, 880], 0.08, 'triangle', 0.06, 0.25);
+  }
+
+  // Resposta "não" ou palpite errado
+  playNo() {
+    this.tone([392, 293.66], 0.09, 'triangle', 0.06, 0.25);
+  }
+
+  // Acertou quem é
+  playSolved() {
+    this.tone([523.25, 659.25, 783.99, 1046.5], 0.08, 'sine', 0.07, 0.5);
+  }
+}
+
+export const whoamiAudio = new WhoAmISoundFX();

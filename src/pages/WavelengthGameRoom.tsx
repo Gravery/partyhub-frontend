@@ -100,7 +100,8 @@ export function WavelengthGameRoom() {
     return () => {
       disconnect();
     };
-  }, [roomId, token]);
+  // Depende só de quem está logado: renovar o token não pode derrubar a conexão
+  }, [roomId, myId]);
 
   // Interação tátil/pointer com o mostrador
   const handlePointerInteraction = useCallback(
@@ -633,7 +634,9 @@ export function WavelengthGameRoom() {
                     filter="url(#bullseyeGlow)"
                   />
                   {(() => {
-                    const labelPos = polarToCartesian((R_INNER + R_OUTER) / 2, pctToRad(target));
+                    // Alvo na ponta: o "4" fica no meio da parte visível da faixa central
+                    const labelPct = Math.max(1.25, Math.min(98.75, target));
+                    const labelPos = polarToCartesian((R_INNER + R_OUTER) / 2, pctToRad(labelPct));
                     return (
                       <text
                         x={labelPos.x}

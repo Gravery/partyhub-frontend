@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import i18n from '../i18n';
+import { freshToken } from './useAuthStore';
 
 export type WavelengthState =
   | 'LOBBY'
@@ -398,7 +399,7 @@ export const useWavelengthStore = create<WavelengthStore>((set, get) => ({
 
           reconnectTimeout = setTimeout(() => {
             if (activeRoomId && activeToken) {
-              get().connect(activeRoomId, activeToken);
+              void freshToken(activeToken).then((tok) => activeRoomId && get().connect(activeRoomId, tok));
             }
           }, delay);
         }
@@ -436,7 +437,7 @@ export const useWavelengthStore = create<WavelengthStore>((set, get) => ({
   manualReconnect: () => {
     if (activeRoomId && activeToken) {
       set({ isReconnecting: true });
-      get().connect(activeRoomId, activeToken);
+      void freshToken(activeToken).then((tok) => activeRoomId && get().connect(activeRoomId, tok));
     }
   },
 

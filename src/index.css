@@ -79,6 +79,12 @@
   --accent-soft: rgb(192 132 252 / 0.14);
   --accent-line: rgb(192 132 252 / 0.45);
 }
+.accent-pink {
+  --accent: #F472B6;
+  --accent-ink: #500724;
+  --accent-soft: rgb(244 114 182 / 0.14);
+  --accent-line: rgb(244 114 182 / 0.45);
+}
 
 :root {
   color-scheme: dark;

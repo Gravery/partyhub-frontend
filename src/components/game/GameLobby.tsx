@@ -82,7 +82,7 @@ export function GameLobby({
               </span>
             </div>
 
-            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,300px),1fr))] gap-3">
               {players.map((p) => (
                 <li
                   key={p.id}

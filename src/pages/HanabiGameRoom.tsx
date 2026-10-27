@@ -373,7 +373,8 @@ export function HanabiGameRoom() {
     }
     connect(roomId, session.access_token);
     return () => disconnect();
-  }, [roomId, session]);
+  // Depende só de quem está logado: renovar o token não pode derrubar a conexão
+  }, [roomId, session?.user.id]);
 
   // Idioma das mensagens do servidor acompanha o da interface (só muda no lobby)
   useEffect(() => {

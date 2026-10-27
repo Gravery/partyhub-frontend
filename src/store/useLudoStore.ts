@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import i18n from '../i18n';
+import { freshToken } from './useAuthStore';
 
 export type LudoColor = 'RED' | 'GREEN' | 'YELLOW' | 'BLUE';
 
@@ -346,7 +347,7 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
         const delay = Math.min(1000 * Math.pow(1.5, attempt), 10000);
         reconnectTimeout = setTimeout(() => {
           if (activeRoomId && activeToken) {
-            get().connect(activeRoomId, activeToken);
+            void freshToken(activeToken).then((tok) => activeRoomId && get().connect(activeRoomId, tok));
           }
         }, delay);
       } else {
@@ -386,7 +387,7 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
   manualReconnect: () => {
     if (activeRoomId && activeToken) {
       set({ reconnectAttempt: 0, isReconnecting: true });
-      get().connect(activeRoomId, activeToken);
+      void freshToken(activeToken).then((tok) => activeRoomId && get().connect(activeRoomId, tok));
     }
   },
 

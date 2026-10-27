@@ -133,7 +133,8 @@ export function LudoGameRoom() {
     }
     connect(roomId, session.access_token);
     return () => disconnect();
-  }, [roomId, session]);
+  // Depende só de quem está logado: renovar o token não pode derrubar a conexão
+  }, [roomId, session?.user.id]);
 
   useEffect(() => {
     if (isRollingAnimation) ludoAudio.playDiceRoll();

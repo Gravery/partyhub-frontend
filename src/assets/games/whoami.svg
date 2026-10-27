@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 360" width="100%" height="100%">
+  <defs>
+    <radialGradient id="wa-bg" cx="50%" cy="35%" r="80%">
+      <stop offset="0%" stop-color="#4a1036"/>
+      <stop offset="55%" stop-color="#1a0b24"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </radialGradient>
+    <linearGradient id="wa-head" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#334155"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <filter id="wa-shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#000" flood-opacity="0.55"/>
+    </filter>
+  </defs>
+  <rect width="600" height="360" fill="url(#wa-bg)"/>
+
+  <!-- Pontos de interrogação ao fundo -->
+  <g fill="#f472b6" opacity="0.12" font-family="Space Grotesk, Arial, sans-serif" font-weight="700">
+    <text x="60" y="110" font-size="90">?</text>
+    <text x="500" y="300" font-size="110">?</text>
+    <text x="470" y="95" font-size="54">?</text>
+    <text x="110" y="320" font-size="60">?</text>
+  </g>
+
+  <!-- Jogadores ao lado, em silhueta -->
+  <g opacity="0.55">
+    <circle cx="140" cy="230" r="42" fill="url(#wa-head)"/>
+    <path d="M 70 360 C 70 300 105 278 140 278 C 175 278 210 300 210 360 Z" fill="url(#wa-head)"/>
+    <circle cx="460" cy="230" r="42" fill="url(#wa-head)"/>
+    <path d="M 390 360 C 390 300 425 278 460 278 C 495 278 530 300 530 360 Z" fill="url(#wa-head)"/>
+  </g>
+
+  <!-- Jogador principal com o papel na testa -->
+  <g filter="url(#wa-shadow)">
+    <circle cx="300" cy="185" r="72" fill="url(#wa-head)" stroke="#475569" stroke-width="3"/>
+    <path d="M 190 360 C 190 280 245 250 300 250 C 355 250 410 280 410 360 Z" fill="url(#wa-head)" stroke="#475569" stroke-width="3"/>
+    <g transform="rotate(-6 300 150)">
+      <rect x="252" y="112" width="96" height="74" rx="6" fill="#f9a8d4"/>
+      <rect x="252" y="112" width="96" height="14" rx="6" fill="#f472b6"/>
+      <text x="300" y="174" text-anchor="middle" font-family="Space Grotesk, Arial, sans-serif" font-size="46" font-weight="700" fill="#500724">?</text>
+    </g>
+  </g>
+
+  <!-- Respostas -->
+  <g font-family="Plus Jakarta Sans, Arial, sans-serif" font-weight="800" font-size="22" filter="url(#wa-shadow)">
+    <path d="M 120 120 h 92 a 14 14 0 0 1 14 14 v 26 a 14 14 0 0 1 -14 14 h -46 l -16 16 v -16 h -30 a 14 14 0 0 1 -14 -14 v -26 a 14 14 0 0 1 14 -14 Z" fill="#064e3b" stroke="#34d399" stroke-width="2.5"/>
+    <text x="166" y="155" text-anchor="middle" fill="#a7f3d0">SIM</text>
+    <path d="M 388 120 h 92 a 14 14 0 0 1 14 14 v 26 a 14 14 0 0 1 -14 14 h -30 v 16 l -16 -16 h -46 a 14 14 0 0 1 -14 -14 v -26 a 14 14 0 0 1 14 -14 Z" fill="#4c0519" stroke="#fb7185" stroke-width="2.5"/>
+    <text x="434" y="155" text-anchor="middle" fill="#fecdd3">NÃO</text>
+  </g>
+</svg>

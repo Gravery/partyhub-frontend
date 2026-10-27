@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '../store/useAuthStore';
 import { LanguageSelector } from '../components/LanguageSelector';
-import { Gamepad2, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 export function Auth() {
   const { t } = useTranslation();
@@ -13,11 +13,11 @@ export function Auth() {
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ text: string; tone: 'error' | 'success' } | null>(null);
-  const { signIn, signUp } = useAuthStore();
+  const { signIn, signUp, sessionExpired } = useAuthStore();
 
   // fetch rejeita com TypeError quando o backend está fora do ar; o Supabase responde em inglês
-  const authErrorText = (err: any): string => {
-    const msg: string = err?.message || '';
+  const authErrorText = (err: unknown): string => {
+    const msg = err instanceof Error ? err.message : '';
     if (err instanceof TypeError) return t('auth.server_offline');
     if (/invalid login credentials/i.test(msg)) return t('auth.invalid_credentials');
     if (/email not confirmed/i.test(msg)) return t('auth.email_not_confirmed');
@@ -38,7 +38,7 @@ export function Auth() {
         setMessage({ text: t('auth.register_success'), tone: 'success' });
         setIsLogin(true);
       }
-    } catch (err: any) {
+    } catch (err) {
       setMessage({ text: authErrorText(err), tone: 'error' });
     } finally {
       setLoading(false);
@@ -58,12 +58,17 @@ export function Auth() {
         className="w-full max-w-md surface p-6 md:p-10 shadow-2xl"
       >
         <div className="flex flex-col items-center gap-3 mb-8 text-center">
-          <span className="w-14 h-14 rounded-2xl bg-[#2E1065] text-violet-300 flex items-center justify-center" aria-hidden="true">
-            <Gamepad2 size={28} />
-          </span>
+          <img src="/favicon.svg" alt="" className="w-14 h-14 shrink-0" aria-hidden="true" />
           <h1 className="font-display font-bold text-3xl md:text-4xl tracking-wide text-ink">PARTY HUB</h1>
           <p className="text-sm text-muted">{isLogin ? t('auth.subtitle') : t('auth.subtitle_signup')}</p>
         </div>
+
+        {sessionExpired && !message && (
+          <p role="status" className="mb-6 flex items-start gap-2 p-3 rounded-xl border text-sm bg-amber-950 border-amber-700 text-amber-100">
+            <AlertCircle size={18} className="shrink-0" />
+            {t('auth.session_expired')}
+          </p>
+        )}
 
         <AnimatePresence>
           {message && (

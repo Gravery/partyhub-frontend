@@ -204,7 +204,8 @@ export function IttoGameRoom() {
     }
     connect('itto', roomId, session.access_token);
     return () => disconnect();
-  }, [roomId, session]);
+  // Depende só de quem está logado: renovar o token não pode derrubar a conexão
+  }, [roomId, session?.user.id]);
 
   // Sincroniza idioma do jogo com o selecionado na interface
   useEffect(() => {

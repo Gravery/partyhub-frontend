@@ -12,6 +12,7 @@ import { HanabiGameRoom } from './pages/HanabiGameRoom';
 import { CahGameRoom } from './pages/CahGameRoom';
 import { LudoGameRoom } from './pages/LudoGameRoom';
 import { WavelengthGameRoom } from './pages/WavelengthGameRoom';
+import { WhoAmIGameRoom } from './pages/WhoAmIGameRoom';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
 // Despachador de jogos com base no slug da URL
@@ -27,6 +28,8 @@ function GameDispatcher() {
     roomComponent = <LudoGameRoom />;
   } else if (gameSlug === 'wavelength' || gameSlug === 'comprimento-de-onda') {
     roomComponent = <WavelengthGameRoom />;
+  } else if (gameSlug === 'whoami' || gameSlug === 'quem-sou-eu') {
+    roomComponent = <WhoAmIGameRoom />;
   }
 
   return (
