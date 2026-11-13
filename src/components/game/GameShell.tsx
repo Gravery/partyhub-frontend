@@ -2,7 +2,7 @@ import React from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { SideDrawer, SidePanel, type SidePanelConfig } from './SideDrawer';
 
-export type GameAccent = 'cyan' | 'zinc' | 'amber' | 'sky' | 'violet' | 'pink';
+export type GameAccent = 'cyan' | 'zinc' | 'amber' | 'sky' | 'violet' | 'pink' | 'lime';
 
 interface GameShellProps {
   accent: GameAccent;

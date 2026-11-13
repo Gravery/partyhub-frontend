@@ -85,6 +85,12 @@
   --accent-soft: rgb(244 114 182 / 0.14);
   --accent-line: rgb(244 114 182 / 0.45);
 }
+.accent-lime {
+  --accent: #A3E635;
+  --accent-ink: #1A2E05;
+  --accent-soft: rgb(163 230 53 / 0.13);
+  --accent-line: rgb(163 230 53 / 0.45);
+}
 
 :root {
   color-scheme: dark;

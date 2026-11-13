@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 360" width="100%" height="100%">
+  <defs>
+    <linearGradient id="wr-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1a2e05"/>
+      <stop offset="50%" stop-color="#0b1220"/>
+      <stop offset="100%" stop-color="#2e1065"/>
+    </linearGradient>
+    <linearGradient id="wr-a" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#d9f99d"/>
+      <stop offset="100%" stop-color="#a3e635"/>
+    </linearGradient>
+    <linearGradient id="wr-b" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ddd6fe"/>
+      <stop offset="100%" stop-color="#a78bfa"/>
+    </linearGradient>
+    <filter id="wr-shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#000" flood-opacity="0.55"/>
+    </filter>
+  </defs>
+  <rect width="600" height="360" fill="url(#wr-bg)"/>
+
+  <!-- Raios de fundo partindo do centro -->
+  <g stroke="#ffffff" stroke-opacity="0.06" stroke-width="18">
+    <line x1="300" y1="180" x2="0" y2="0"/>
+    <line x1="300" y1="180" x2="600" y2="0"/>
+    <line x1="300" y1="180" x2="0" y2="360"/>
+    <line x1="300" y1="180" x2="600" y2="360"/>
+    <line x1="300" y1="180" x2="300" y2="0"/>
+    <line x1="300" y1="180" x2="300" y2="360"/>
+  </g>
+
+  <!-- Carta A -->
+  <g transform="rotate(-9 175 185)" filter="url(#wr-shadow)">
+    <rect x="95" y="70" width="160" height="220" rx="18" fill="url(#wr-a)"/>
+    <rect x="107" y="82" width="136" height="196" rx="12" fill="none" stroke="#1a2e05" stroke-opacity="0.25" stroke-width="3" stroke-dasharray="8 7"/>
+    <text x="175" y="210" text-anchor="middle" font-family="Space Grotesk, Arial, sans-serif" font-size="120" font-weight="700" fill="#1a2e05">A</text>
+  </g>
+
+  <!-- Carta B -->
+  <g transform="rotate(9 425 185)" filter="url(#wr-shadow)">
+    <rect x="345" y="70" width="160" height="220" rx="18" fill="url(#wr-b)"/>
+    <rect x="357" y="82" width="136" height="196" rx="12" fill="none" stroke="#2e1065" stroke-opacity="0.25" stroke-width="3" stroke-dasharray="8 7"/>
+    <text x="425" y="210" text-anchor="middle" font-family="Space Grotesk, Arial, sans-serif" font-size="120" font-weight="700" fill="#2e1065">B</text>
+  </g>
+
+  <!-- OU no centro -->
+  <g filter="url(#wr-shadow)">
+    <circle cx="300" cy="180" r="46" fill="#0b1220" stroke="#a3e635" stroke-width="5"/>
+    <text x="300" y="196" text-anchor="middle" font-family="Space Grotesk, Arial, sans-serif" font-size="42" font-weight="700" fill="#ecfccb">OU</text>
+  </g>
+
+  <!-- Pontos de interrogação flutuando -->
+  <g font-family="Space Grotesk, Arial, sans-serif" font-weight="700" fill="#a3e635" fill-opacity="0.35">
+    <text x="40" y="70" font-size="44">?</text>
+    <text x="545" y="320" font-size="52">?</text>
+    <text x="530" y="70" font-size="34" fill="#c4b5fd">?</text>
+    <text x="55" y="320" font-size="38" fill="#c4b5fd">?</text>
+  </g>
+</svg>

@@ -518,3 +518,50 @@ export class WhoAmISoundFX extends BaseSoundFX {
 }
 
 export const whoamiAudio = new WhoAmISoundFX();
+
+// ==========================================
+// VOCÊ PREFERE
+// ==========================================
+export class RatherSoundFX extends BaseSoundFX {
+  constructor() {
+    super('partyhub_sound_rather');
+  }
+
+  private tone(freqs: number[], step: number, type: OscillatorType, volume: number, length: number) {
+    if (!this.enabled) return;
+    this.initCtx();
+    if (!this.ctx) return;
+    freqs.forEach((freq, idx) => {
+      if (!this.ctx) return;
+      const start = this.ctx.currentTime + idx * step;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, start);
+      gain.gain.setValueAtTime(volume, start);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + length);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(start);
+      osc.stop(start + length + 0.03);
+    });
+  }
+
+  // Escolha ou palpite marcado
+  playPick() {
+    this.tone([587.33], 0, 'triangle', 0.05, 0.12);
+  }
+
+  // Novo dilema na mesa
+  playNewDilemma() {
+    this.tone([392, 523.25], 0.07, 'sine', 0.05, 0.25);
+  }
+
+  // Revelação: acertou a maioria dos palpites ou não
+  playReveal(goodRound: boolean) {
+    if (goodRound) this.tone([523.25, 659.25, 783.99], 0.08, 'sine', 0.07, 0.4);
+    else this.tone([440, 349.23], 0.1, 'triangle', 0.06, 0.3);
+  }
+}
+
+export const ratherAudio = new RatherSoundFX();

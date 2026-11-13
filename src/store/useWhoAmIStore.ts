@@ -7,6 +7,7 @@ export type WhoAmIPhase = 'LOBBY' | 'WRITING' | 'ASKING' | 'ANSWERING' | 'GAME_O
 export type WhoAmICategory = 'character' | 'place' | 'object' | 'animal' | 'free';
 export type PlayerStatus = 'active' | 'solved' | 'gave_up';
 export type TurnKind = 'question' | 'guess';
+export type Answer = 'yes' | 'no' | 'irrelevant';
 
 export interface SecretView {
   writerId: string;
@@ -30,7 +31,9 @@ export interface LogEntry {
   text: string;
   yes: number;
   no: number;
-  result: 'yes' | 'no' | 'split' | 'correct' | 'wrong' | 'gave_up';
+  /** Votos "não importa / não se aplica" (só em perguntas) */
+  irrelevant?: number;
+  result: 'yes' | 'no' | 'irrelevant' | 'split' | 'correct' | 'wrong' | 'gave_up';
   auto?: boolean;
 }
 
@@ -49,7 +52,7 @@ export interface WhoAmIState {
   solvedRound: Record<string, number>;
   solvedOrder: string[];
   turns: Record<string, TurnView>;
-  answers: Record<string, Record<string, 'yes' | 'no'>>;
+  answers: Record<string, Record<string, Answer>>;
   logs: Record<string, LogEntry[]>;
 }
 
@@ -72,7 +75,7 @@ interface WhoAmIStore {
   submitSecret: (category: WhoAmICategory, text: string) => void;
   submitTurn: (kind: TurnKind, text: string) => void;
   retractTurn: () => void;
-  answer: (askerId: string, answer: 'yes' | 'no') => void;
+  answer: (askerId: string, answer: Answer) => void;
   giveUp: () => void;
   endGame: () => void;
   restartGame: () => void;

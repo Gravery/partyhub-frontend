@@ -14,13 +14,14 @@ import cahCover from '../assets/games/cah.jpg';
 import ludoCover from '../assets/games/ludo.jpg';
 import wavelengthCover from '../assets/games/wavelength.jpg';
 import whoamiCover from '../assets/games/whoami.svg';
+import ratherCover from '../assets/games/rather.svg';
 
 type Filter = 'all' | 'coop' | 'competitive' | 'large';
 
 interface GameConfig {
   slug: string;
   name: string;
-  accent: 'cyan' | 'sky' | 'violet' | 'amber' | 'zinc' | 'pink';
+  accent: 'cyan' | 'sky' | 'violet' | 'amber' | 'zinc' | 'pink' | 'lime';
   cover: string;
   players: string;
   categoryKey: string;
@@ -35,10 +36,12 @@ const GAMES: GameConfig[] = [
   { slug: 'ludo', name: 'Ludo', accent: 'amber', cover: ludoCover, players: '1–4', categoryKey: 'hub.cat_classic', tags: ['competitive'] },
   { slug: 'cah', name: '', accent: 'zinc', cover: cahCover, players: '3–12', categoryKey: 'hub.cat_humor', tags: ['competitive', 'large'] },
   { slug: 'whoami', name: '', accent: 'pink', cover: whoamiCover, players: '2–12', categoryKey: 'hub.cat_deduction', tags: ['competitive', 'large'] },
+  { slug: 'rather', name: '', accent: 'lime', cover: ratherCover, players: '2–12', categoryKey: 'hub.cat_social', tags: ['competitive', 'large'] },
 ];
 
 // Grade do desktop conforme quantos jogos aparecem: número ímpar ganha um destaque de duas linhas
 function desktopGrid(count: number): { grid: string; featured: boolean } {
+  if (count === 7) return { grid: 'lg:grid-cols-[1.35fr_1fr_1fr_1fr] lg:grid-rows-2', featured: true };
   if (count === 6) return { grid: 'lg:grid-cols-3 lg:grid-rows-2', featured: false };
   if (count === 5) return { grid: 'lg:grid-cols-[1.35fr_1fr_1fr] lg:grid-rows-2', featured: true };
   if (count === 4) return { grid: 'lg:grid-cols-2 lg:grid-rows-2', featured: false };

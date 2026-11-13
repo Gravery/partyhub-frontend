@@ -47,6 +47,7 @@ import {
   RotateCcw,
   CircleStop,
   PartyPopper,
+  CircleSlash,
 } from 'lucide-react';
 
 type SideTab = 'players' | 'logs' | 'rules';
@@ -68,14 +69,21 @@ function categoryIcon(cat: WhoAmICategory | null, size = 14) {
 
 function ResultChip({ entry }: { entry: LogEntry }) {
   const { t } = useTranslation();
-  const votes = entry.kind !== 'give_up' && !entry.auto ? ` ${entry.yes}–${entry.no}` : '';
+  const irrelevant = entry.irrelevant || 0;
+  const total = entry.yes + entry.no + irrelevant;
+  // Pergunta: votos da resposta vencedora sobre o total; palpite: sim–não
+  const share = (n: number) => (entry.kind === 'question' ? ` ${n}/${total}` : ` ${entry.yes}–${entry.no}`);
+  const votes = entry.kind !== 'give_up' && !entry.auto ? share(entry.no) : '';
+  const breakdown = t('whoami.votes_breakdown', { yes: entry.yes, no: entry.no, irrelevant });
   switch (entry.result) {
     case 'yes':
-      return <span className="chip chip-success shrink-0">{t('whoami.result_yes')}{votes}</span>;
+      return <span className="chip chip-success shrink-0" title={breakdown}>{t('whoami.result_yes')}{share(entry.yes)}</span>;
     case 'no':
-      return <span className="chip chip-danger shrink-0">{t('whoami.result_no')}{votes}</span>;
+      return <span className="chip chip-danger shrink-0" title={breakdown}>{t('whoami.result_no')}{share(entry.no)}</span>;
+    case 'irrelevant':
+      return <span className="chip shrink-0" title={breakdown}>{t('whoami.result_irrelevant')}{share(irrelevant)}</span>;
     case 'split':
-      return <span className="chip chip-warning shrink-0">{t('whoami.result_split')}{votes}</span>;
+      return <span className="chip chip-warning shrink-0" title={breakdown}>{t('whoami.result_split')}</span>;
     case 'correct':
       return <span className="chip chip-success shrink-0">{t('whoami.result_correct')}</span>;
     case 'wrong':
@@ -602,7 +610,7 @@ export function WhoAmIGameRoom() {
             ) : isMine ? (
               <p className="text-sm text-muted">{t('whoami.your_turn_waiting', { answered, needed })}</p>
             ) : (
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-[1fr_1fr_auto] gap-2">
                 <button
                   type="button"
                   onClick={() => answer(asker, 'yes')}
@@ -621,6 +629,18 @@ export function WhoAmIGameRoom() {
                   <X size={18} strokeWidth={3} />
                   {t('whoami.answer_no')}
                 </button>
+                {turn.kind === 'question' && (
+                  <button
+                    type="button"
+                    onClick={() => answer(asker, 'irrelevant')}
+                    aria-pressed={myAnswer === 'irrelevant'}
+                    title={t('whoami.answer_irrelevant_hint')}
+                    className={`btn btn-lg col-span-2 sm:col-span-1 ${myAnswer === 'irrelevant' ? 'btn-secondary ring-2 ring-accent bg-accent-soft text-ink' : 'btn-ghost border border-line-strong'}`}
+                  >
+                    <CircleSlash size={18} strokeWidth={2.5} />
+                    {t('whoami.answer_irrelevant')}
+                  </button>
+                )}
               </div>
             )}
           </li>

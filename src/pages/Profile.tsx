@@ -14,6 +14,7 @@ import cahCover from '../assets/games/cah.jpg';
 import ludoCover from '../assets/games/ludo.jpg';
 import wavelengthCover from '../assets/games/wavelength.jpg';
 import whoamiCover from '../assets/games/whoami.svg';
+import ratherCover from '../assets/games/rather.svg';
 
 const GAME_INFO: Record<string, { name?: string; cover: string; accent: string }> = {
   itto: { name: 'Itto', cover: ittoCover, accent: 'violet' },
@@ -22,6 +23,7 @@ const GAME_INFO: Record<string, { name?: string; cover: string; accent: string }
   ludo: { name: 'Ludo', cover: ludoCover, accent: 'amber' },
   wavelength: { name: 'Wavelength', cover: wavelengthCover, accent: 'cyan' },
   whoami: { cover: whoamiCover, accent: 'pink' },
+  rather: { cover: ratherCover, accent: 'lime' },
 };
 
 export function Profile() {

@@ -13,6 +13,7 @@ import { CahGameRoom } from './pages/CahGameRoom';
 import { LudoGameRoom } from './pages/LudoGameRoom';
 import { WavelengthGameRoom } from './pages/WavelengthGameRoom';
 import { WhoAmIGameRoom } from './pages/WhoAmIGameRoom';
+import { RatherGameRoom } from './pages/RatherGameRoom';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
 // Despachador de jogos com base no slug da URL
@@ -30,6 +31,8 @@ function GameDispatcher() {
     roomComponent = <WavelengthGameRoom />;
   } else if (gameSlug === 'whoami' || gameSlug === 'quem-sou-eu') {
     roomComponent = <WhoAmIGameRoom />;
+  } else if (gameSlug === 'rather' || gameSlug === 'voce-prefere') {
+    roomComponent = <RatherGameRoom />;
   }
 
   return (
