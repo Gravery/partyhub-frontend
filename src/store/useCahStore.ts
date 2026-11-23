@@ -113,6 +113,9 @@ interface CahStore {
 let lastConnParams: { roomId: string; token: string } | null = null;
 let reconnectTimeout: any = null;
 
+/** Conexão atual: eventos de conexões substituídas (ainda abrindo ou fechando) são ignorados */
+let currentWs: WebSocket | null = null;
+
 export const useCahStore = create<CahStore>((set, get) => ({
   socket: null,
   isConnected: false,
@@ -158,8 +161,12 @@ export const useCahStore = create<CahStore>((set, get) => ({
     const lang = i18n.language?.startsWith('pt') ? 'pt' : 'en';
     const wsUrl = `${wsBaseUrl}/cah/${roomId}?token=${token}&lang=${lang}`;
     const ws = new WebSocket(wsUrl);
+    const previousWs = currentWs;
+    currentWs = ws;
+    if (previousWs && previousWs !== ws) previousWs.close();
 
     ws.onopen = () => {
+      if (ws !== currentWs) return;
       console.log('🃏 Conectado ao servidor de Cartas Contra a Humanidade!');
       set({
         socket: ws,
@@ -172,6 +179,7 @@ export const useCahStore = create<CahStore>((set, get) => ({
     };
 
     ws.onmessage = (event) => {
+      if (ws !== currentWs) return;
       let data: any;
       try {
         data = JSON.parse(event.data);
@@ -270,6 +278,7 @@ export const useCahStore = create<CahStore>((set, get) => ({
     };
 
     ws.onclose = () => {
+      if (ws !== currentWs) return;
       console.log('🔌 Conexão de CAH encerrada.');
       const currentAttempt = get().reconnectAttempt;
       set({ socket: null, isConnected: false });
@@ -295,11 +304,15 @@ export const useCahStore = create<CahStore>((set, get) => ({
     };
 
     ws.onerror = (error) => {
+      if (ws !== currentWs) return;
       console.error('Erro no WebSocket de CAH:', error);
     };
   },
 
   disconnect: () => {
+    const closingWs = currentWs;
+    currentWs = null;
+    closingWs?.close();
     lastConnParams = null;
     if (reconnectTimeout) {
       clearTimeout(reconnectTimeout);

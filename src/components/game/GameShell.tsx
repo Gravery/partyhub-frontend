@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { SideDrawer, SidePanel, type SidePanelConfig } from './SideDrawer';
+import { ActionLayer } from './ActionLayer';
 
 export type GameAccent = 'cyan' | 'zinc' | 'amber' | 'sky' | 'violet' | 'pink' | 'lime';
 
@@ -40,9 +41,10 @@ export const GameShell: React.FC<GameShellProps> = ({
   phaseKey,
 }) => {
   const hasRail = Boolean(side && showRail);
+  const rootRef = useRef<HTMLDivElement>(null);
 
   return (
-    <div className={`game-viewport accent-${accent} w-full bg-ground text-body select-none`}>
+    <div ref={rootRef} className={`game-viewport accent-${accent} w-full bg-ground text-body select-none`}>
       <header className="shrink-0 z-30">{header}</header>
 
       <div className="flex-1 min-h-0 flex">
@@ -84,6 +86,9 @@ export const GameShell: React.FC<GameShellProps> = ({
           className={hasRail ? 'xl:hidden' : ''}
         />
       )}
+
+      {/* Jogadas acontecendo na mesa (voo, reação e legenda); âncoras são elementos com data-anchor */}
+      <ActionLayer rootRef={rootRef} />
 
       {overlay}
     </div>

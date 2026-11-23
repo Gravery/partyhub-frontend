@@ -8,7 +8,8 @@ import { GameShell } from '../components/game/GameShell';
 import { GameHeader } from '../components/game/GameHeader';
 import { type TabOption } from '../components/game/SideDrawer';
 import { GameLobby, type LobbyPlayer } from '../components/game/GameLobby';
-import { lobbyBlockReason } from '../lib/gameUi';
+import { lobbyBlockReason, avatarColor } from '../lib/gameUi';
+import { playAction } from '../lib/actionLayer';
 import {
   StatusPill,
   GameNotice,
@@ -58,6 +59,15 @@ function makeArcSector(p1: number, p2: number, rIn: number, rOut: number): strin
 
 type SideTab = 'players' | 'history' | 'rules';
 
+/** Pontos da rodada voando do mostrador até o placar da equipe */
+function PointsToken({ points }: { points: number }) {
+  return (
+    <div className="w-full h-full rounded-full bg-yellow-300 text-yellow-950 font-display font-bold text-lg flex items-center justify-center shadow-lg shadow-black/50">
+      +{points}
+    </div>
+  );
+}
+
 export function WavelengthGameRoom() {
   const { roomId } = useParams<{ roomId: string }>();
   const navigate = useNavigate();
@@ -102,6 +112,41 @@ export function WavelengthGameRoom() {
     };
   // Depende só de quem está logado: renovar o token não pode derrubar a conexão
   }, [roomId, myId]);
+
+  // Pista dada e pontos revelados aparecem onde acontecem: na pista e no placar
+  const hasState = Boolean(gameState);
+  const phase = gameState?.state;
+  const prevPhase = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (!gameState) return;
+    const prev = prevPhase.current;
+    prevPhase.current = gameState.state;
+    if (prev === undefined || prev === gameState.state) return;
+    if (prev === 'PSYCHIC_PHASE' && gameState.state === 'GUESSING_PHASE') {
+      playAction({
+        to: 'wl-clue',
+        effect: 'pulse',
+        delayMs: 350,
+        caption: { text: t('wavelength.action_clue'), actorName: gameState.psychicName, actorSeed: gameState.psychicId, tone: 'accent' },
+      });
+    }
+    if (prev === 'GUESSING_PHASE' && gameState.state === 'REVEAL_PHASE') {
+      const pts = gameState.roundPoints;
+      // Espera a faixa do alvo aparecer no mostrador antes de soltar os pontos
+      playAction({
+        from: 'wl-dial',
+        to: pts > 0 ? 'wl-score' : 'wl-dial',
+        token: pts > 0 ? <PointsToken points={pts} /> : undefined,
+        size: { w: 64, h: 36 },
+        effect: 'pulse',
+        delayMs: 650,
+        caption: {
+          text: pts > 0 ? t('wavelength.action_points', { count: pts }) : t('wavelength.action_no_points'),
+          tone: pts > 0 ? 'success' : 'info',
+        },
+      });
+    }
+  }, [phase, hasState]);
 
   // Interação tátil/pointer com o mostrador
   const handlePointerInteraction = useCallback(
@@ -244,7 +289,7 @@ export function WavelengthGameRoom() {
       <span className="chip shrink-0">
         {t('common.round')} {gameState.round}/{gameState.totalRounds}
       </span>
-      <span className="chip chip-accent shrink-0">
+      <span className="chip chip-accent shrink-0" data-anchor="wl-score">
         {gameState.teamScore} {t('common.pts')}
       </span>
     </>
@@ -501,7 +546,7 @@ export function WavelengthGameRoom() {
           </div>
 
           {gameState.currentClue && (
-            <div className="shrink-0 flex items-center gap-3 px-5 py-2.5 rounded-2xl bg-amber-950 border border-amber-700">
+            <div className="shrink-0 flex items-center gap-3 px-5 py-2.5 rounded-2xl bg-amber-950 border border-amber-700" data-anchor="wl-clue">
               <span className="label-caps text-amber-300">{t('wavelength.clue_title')}</span>
               <span className="font-display font-bold text-lg md:text-2xl text-amber-100">“{gameState.currentClue}”</span>
             </div>
@@ -511,6 +556,7 @@ export function WavelengthGameRoom() {
           <div className="relative flex-1 min-h-0 w-full [container-type:size] flex items-center justify-center">
             <svg
               ref={svgRef}
+              data-anchor="wl-dial"
               viewBox="0 0 500 280"
               role="slider"
               aria-label={t('wavelength.dial_label')}
@@ -684,6 +730,24 @@ export function WavelengthGameRoom() {
                   strokeWidth="2"
                 />
               </g>
+
+              {/* Quem mexeu por último anda na ponta do ponteiro */}
+              {gameState.state === 'GUESSING_PHASE' && gameState.lastDialMoverId && (
+                <g aria-hidden="true">
+                  <circle cx={needleTip.x} cy={needleTip.y} r="12" fill={avatarColor(gameState.lastDialMoverId)} stroke="#ffffff" strokeWidth="2" />
+                  <text
+                    x={needleTip.x}
+                    y={needleTip.y + 4.5}
+                    textAnchor="middle"
+                    fontSize="13"
+                    fontWeight="800"
+                    fill="#ffffff"
+                    fontFamily="Plus Jakarta Sans, sans-serif"
+                  >
+                    {(gameState.playerNames[gameState.lastDialMoverId] || '?').charAt(0).toUpperCase()}
+                  </text>
+                </g>
+              )}
 
               {/* Center Hub Pivot */}
               <circle cx={CX} cy={CY} r="24" fill="#0f172a" stroke="#ef4444" strokeWidth="2.5" />

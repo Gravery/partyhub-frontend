@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useHanabiStore, type HanabiCard } from '../store/useHanabiStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FireworksCanvas } from '../components/FireworksCanvas';
+import { playAction, ACTION_TIMING } from '../lib/actionLayer';
 import { GameShell } from '../components/game/GameShell';
 import { GameHeader } from '../components/game/GameHeader';
 import { type TabOption } from '../components/game/SideDrawer';
@@ -75,6 +76,7 @@ function TeammateCard({ card, isHighlighted }: { card: HanabiCard; isHighlighted
   return (
     <div
       role="img"
+      data-anchor={`card-${card.id}`}
       aria-label={`${getColorName(card.color, t)} ${card.number}${known ? ` — ${t('hanabi.they_know')}: ${known}` : ''}`}
       title={known ? `${t('hanabi.they_know')}: ${known}` : undefined}
       className={`relative w-8 md:w-[clamp(52px,4.4vw,76px)] aspect-[2/3] rounded-md md:rounded-xl border-2 flex flex-col items-center justify-center md:justify-between md:p-1.5 select-none shrink-0 ${conf.bg} ${conf.border} ${conf.ink} ${
@@ -91,6 +93,34 @@ function TeammateCard({ card, isHighlighted }: { card: HanabiCard; isHighlighted
       {(card.known_color || card.known_number) && (
         <span className="md:hidden absolute -bottom-1 left-1/2 -translate-x-1/2 w-3 h-1 rounded-full bg-white/90" aria-hidden="true" />
       )}
+    </div>
+  );
+}
+
+/** Carta em voo na camada de ações (face visível) */
+function FlyingCard({ color, number }: { color: string; number: number }) {
+  const conf = COLOR_CONFIG[color] || COLOR_CONFIG.white;
+  return (
+    <div className={`w-full h-full rounded-xl border-2 flex items-center justify-center font-display font-bold text-3xl shadow-xl shadow-black/50 ${conf.bg} ${conf.border} ${conf.ink}`}>
+      {number}
+    </div>
+  );
+}
+
+/** Verso da carta: o próprio jogador não sabe o que tem até ela virar no ar */
+function FlyingBack() {
+  return (
+    <div className="w-full h-full rounded-xl border-2 border-accent bg-raised flex items-center justify-center font-display font-bold text-2xl text-muted shadow-xl shadow-black/50">
+      ?
+    </div>
+  );
+}
+
+/** Ficha de dica voando de quem deu até a mão de quem recebeu */
+function ClueToken() {
+  return (
+    <div className="w-full h-full rounded-full bg-accent text-accent-ink flex items-center justify-center shadow-lg shadow-black/50">
+      <Lightbulb size={18} />
     </div>
   );
 }
@@ -125,6 +155,7 @@ function MyCard({
     <motion.button
       type="button"
       layout
+      data-anchor={`card-${card.id}`}
       disabled={!selectable}
       onClick={onSelect}
       aria-pressed={isSelected}
@@ -334,37 +365,95 @@ export function HanabiGameRoom() {
   const [sideOpen, setSideOpen] = useState(false);
   const [burstTrigger, setBurstTrigger] = useState<{ color: string; isBonus?: boolean; timestamp: number } | null>(null);
   const [isShaking, setIsShaking] = useState(false);
-  const [playToast, setPlayToast] = useState<{ type: 'success' | 'error'; message: string; submessage?: string } | null>(null);
+  const viewerId = session?.user?.id || '';
 
-  // Resultados de jogadas disparam partículas, tremor e aviso
+  // Carta jogada: sai da mão, vira no ar (se era sua) e pousa na pilha ou nos pavios
   useEffect(() => {
     if (!lastPlayResult) return;
-    const colorName = getColorName(lastPlayResult.color, t);
+    const r = lastPlayResult;
+    const colorName = getColorName(r.color, t);
+    const face = <FlyingCard color={r.color} number={r.number} />;
+    const mine = r.userId === viewerId;
+    playAction({
+      from: `card-${r.cardId}`,
+      fallbackFrom: `hand-${r.userId}`,
+      to: r.success ? `firework-${r.color}` : 'fuses',
+      token: mine ? <FlyingBack /> : face,
+      revealToken: mine ? face : undefined,
+      effect: r.success ? 'pulse' : 'shake',
+      caption: {
+        actorName: r.userName,
+        actorSeed: r.userId,
+        tone: r.success ? 'success' : 'danger',
+        text: r.success
+          ? r.isFiveBonus
+            ? t('hanabi.action_five', { color: colorName })
+            : t('hanabi.action_played', { color: colorName, number: r.number })
+          : t('hanabi.action_misplay', { color: colorName, number: r.number, fuses: r.fuseTokens }),
+      },
+    });
+    // Faíscas ou tremor da mesa quando a carta pousa
+    const timer = setTimeout(() => {
+      if (r.success) {
+        setBurstTrigger({ color: r.color, isBonus: r.isFiveBonus, timestamp: r.timestamp });
+      } else {
+        setIsShaking(true);
+        setTimeout(() => setIsShaking(false), 600);
+      }
+    }, ACTION_TIMING.travel);
+    return () => clearTimeout(timer);
+  }, [lastPlayResult, t, viewerId]);
 
-    if (lastPlayResult.success) {
-      setBurstTrigger({ color: lastPlayResult.color, isBonus: lastPlayResult.isFiveBonus, timestamp: lastPlayResult.timestamp });
-      setPlayToast({
-        type: 'success',
-        message: lastPlayResult.isFiveBonus
-          ? t('hanabi.toast_five_bonus', { color: colorName })
-          : t('hanabi.toast_firework_up', { color: colorName, level: lastPlayResult.fireworksLevel }),
-        submessage: lastPlayResult.isFiveBonus
-          ? t('hanabi.toast_five_bonus_sub', { user: lastPlayResult.userName })
-          : t('hanabi.toast_firework_up_sub', { user: lastPlayResult.userName, color: colorName, number: lastPlayResult.number }),
+  // Descarte e dica chegam pelo lastAction; o tamanho do log marca cada ação nova
+  const logLength = gameState?.actionLog?.length ?? 0;
+  const seenLog = useRef<number | null>(null);
+  useEffect(() => {
+    if (!gameState) return;
+    const first = seenLog.current === null;
+    const grew = !first && logLength > (seenLog.current ?? 0);
+    seenLog.current = logLength;
+    // Ao entrar ou reconectar não repete a última jogada
+    if (!grew || !gameState.lastAction) return;
+    const la = gameState.lastAction;
+    const actorName = gameState.playerNames?.[la.playerId] || la.playerName;
+    if (la.type === 'DISCARD') {
+      const card = gameState.discardPile[gameState.discardPile.length - 1];
+      const face = card ? <FlyingCard color={card.color} number={card.number} /> : <FlyingBack />;
+      const mine = la.playerId === viewerId;
+      playAction({
+        from: `card-${la.cardId}`,
+        fallbackFrom: `hand-${la.playerId}`,
+        to: 'clues',
+        token: mine ? <FlyingBack /> : face,
+        revealToken: mine && card ? face : undefined,
+        effect: 'pulse',
+        caption: {
+          actorName,
+          actorSeed: la.playerId,
+          tone: 'info',
+          text: card
+            ? t('hanabi.action_discarded', { color: getColorName(card.color, t), number: card.number })
+            : t('hanabi.action_discarded_plain'),
+        },
       });
-    } else {
-      setIsShaking(true);
-      setTimeout(() => setIsShaking(false), 600);
-      setPlayToast({
-        type: 'error',
-        message: t('hanabi.toast_explosion', { user: lastPlayResult.userName }),
-        submessage: t('hanabi.toast_explosion_sub', { color: colorName, number: lastPlayResult.number, fuses: lastPlayResult.fuseTokens }),
+    } else if (la.type === 'CLUE' && la.targetPlayerId) {
+      const target = gameState.playerNames?.[la.targetPlayerId] || '';
+      playAction({
+        from: `hand-${la.playerId}`,
+        to: `hand-${la.targetPlayerId}`,
+        token: <ClueToken />,
+        size: { w: 40, h: 40 },
+        effect: 'none',
+        alsoPulse: (la.targetCardIds || []).map((id) => `card-${id}`),
+        caption: {
+          actorName,
+          actorSeed: la.playerId,
+          tone: 'accent',
+          text: la.targetPlayerId === viewerId ? t('hanabi.action_clue_you') : t('hanabi.action_clue', { name: target }),
+        },
       });
     }
-
-    const timer = setTimeout(() => setPlayToast(null), 4500);
-    return () => clearTimeout(timer);
-  }, [lastPlayResult, t]);
+  }, [logLength]);
 
   useEffect(() => {
     if (!session?.access_token || !roomId) {
@@ -443,12 +532,12 @@ export function HanabiGameRoom() {
   const stats =
     gameState.state === 'PLAYING' ? (
       <>
-        <span className="chip shrink-0" title={t('hanabi.clue_tokens')}>
+        <span className="chip shrink-0" title={t('hanabi.clue_tokens')} data-anchor="clues">
           <Lightbulb size={14} className="text-sky-300" aria-hidden="true" />
           <span className="sr-only">{t('hanabi.clue_tokens')}:</span>
           {gameState.clockTokens}/8
         </span>
-        <span className={`chip shrink-0 ${gameState.fuseTokens > 0 ? 'chip-danger' : ''}`} title={t('hanabi.fuse_tokens')}>
+        <span className={`chip shrink-0 ${gameState.fuseTokens > 0 ? 'chip-danger' : ''}`} title={t('hanabi.fuse_tokens')} data-anchor="fuses">
           <Flame size={14} aria-hidden="true" />
           <span className="sr-only">{t('hanabi.fuse_tokens')}:</span>
           {gameState.fuseTokens}/3
@@ -597,9 +686,6 @@ export function HanabiGameRoom() {
             onReconnect={manualReconnect}
             disconnectedName={disconnectNotice?.userName}
           />
-          {playToast && (
-            <GameNotice key="play" tone={playToast.type === 'success' ? 'success' : 'error'} title={playToast.message} detail={playToast.submessage} onClose={() => setPlayToast(null)} />
-          )}
           {errorMsg && <GameNotice key="err" tone="error" title={errorMsg} onClose={clearError} />}
         </AnimatePresence>
       }
@@ -615,7 +701,7 @@ export function HanabiGameRoom() {
                 <span className="text-xs text-muted text-right">{isMyTurn ? t('hanabi.tap_card') : t('hanabi.my_hand_note')}</span>
               </div>
 
-              <div className="flex gap-2 md:gap-3 justify-center">
+              <div className="flex gap-2 md:gap-3 justify-center" data-anchor={`hand-${myId}`}>
                 {myCards.map((card, idx) => {
                   const isHinted =
                     gameState.lastAction?.type === 'CLUE' &&
@@ -794,6 +880,7 @@ export function HanabiGameRoom() {
               return (
                 <div
                   key={pid}
+                  data-anchor={`hand-${pid}`}
                   className={`flex md:flex-col lg:flex-row items-center md:items-stretch lg:items-center gap-2 md:gap-3 lg:gap-4 p-1.5 pl-3 md:p-4 rounded-2xl border ${
                     isCurrent ? 'border-accent-line bg-accent-soft' : 'border-line bg-surface'
                   }`}
@@ -844,12 +931,10 @@ export function HanabiGameRoom() {
             <div className="w-full max-w-3xl flex gap-2 md:gap-4 justify-center">
               {Object.entries(gameState.fireworks).map(([color, value]) => {
                 const conf = COLOR_CONFIG[color] || COLOR_CONFIG.white;
-                const isRecent = lastPlayResult?.success && lastPlayResult?.color === color;
                 return (
-                  <motion.div
+                  <div
                     key={color}
-                    animate={isRecent ? { scale: [1, 1.12, 1] } : {}}
-                    transition={{ duration: 0.4 }}
+                    data-anchor={`firework-${color}`}
                     role="img"
                     aria-label={`${getColorName(color, t)}: ${value}/5`}
                     className={`flex-1 max-w-28 aspect-[2/3] max-h-[min(30dvh,190px)] rounded-xl md:rounded-2xl border-2 flex flex-col items-center justify-between p-1.5 md:p-2 ${
@@ -859,7 +944,7 @@ export function HanabiGameRoom() {
                     <span className="text-xs font-bold uppercase leading-none">{getColorShort(color, t)}</span>
                     <span className="font-display font-bold text-3xl md:text-5xl leading-none">{value > 0 ? value : '–'}</span>
                     <span className="text-xs font-bold leading-none">{value === 5 ? '★' : `${value}/5`}</span>
-                  </motion.div>
+                  </div>
                 );
               })}
             </div>

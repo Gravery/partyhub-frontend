@@ -101,6 +101,9 @@ interface HanabiStore {
 let lastConnParams: { roomId: string; token: string } | null = null;
 let reconnectTimeout: any = null;
 
+/** Conexão atual: eventos de conexões substituídas (ainda abrindo ou fechando) são ignorados */
+let currentWs: WebSocket | null = null;
+
 export const useHanabiStore = create<HanabiStore>((set, get) => ({
   socket: null,
   isConnected: false,
@@ -143,8 +146,12 @@ export const useHanabiStore = create<HanabiStore>((set, get) => ({
     const lang = i18n.language?.startsWith('pt') ? 'pt' : 'en';
     const wsUrl = `${wsBaseUrl}/hanabi/${roomId}?token=${token}&lang=${lang}`;
     const ws = new WebSocket(wsUrl);
+    const previousWs = currentWs;
+    currentWs = ws;
+    if (previousWs && previousWs !== ws) previousWs.close();
 
     ws.onopen = () => {
+      if (ws !== currentWs) return;
       console.log('🎆 Conectado ao servidor de Hanabi!');
       set({
         socket: ws,
@@ -157,6 +164,7 @@ export const useHanabiStore = create<HanabiStore>((set, get) => ({
     };
 
     ws.onmessage = (event) => {
+      if (ws !== currentWs) return;
       let data: any;
       try {
         data = JSON.parse(event.data);
@@ -223,6 +231,7 @@ export const useHanabiStore = create<HanabiStore>((set, get) => ({
     };
 
     ws.onclose = () => {
+      if (ws !== currentWs) return;
       console.log('🔌 Conexão de Hanabi encerrada.');
       const currentAttempt = get().reconnectAttempt;
       set({ socket: null, isConnected: false });
@@ -247,11 +256,15 @@ export const useHanabiStore = create<HanabiStore>((set, get) => ({
     };
 
     ws.onerror = (error) => {
+      if (ws !== currentWs) return;
       console.error('Erro no WebSocket de Hanabi:', error);
     };
   },
 
   disconnect: () => {
+    const closingWs = currentWs;
+    currentWs = null;
+    closingWs?.close();
     lastConnParams = null;
     if (reconnectTimeout) {
       clearTimeout(reconnectTimeout);

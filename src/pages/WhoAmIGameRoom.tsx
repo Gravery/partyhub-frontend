@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { AnimatePresence } from 'framer-motion';
@@ -15,6 +15,7 @@ import { GameHeader } from '../components/game/GameHeader';
 import { type TabOption } from '../components/game/SideDrawer';
 import { GameLobby, type LobbyPlayer } from '../components/game/GameLobby';
 import { lobbyBlockReason } from '../lib/gameUi';
+import { playAction } from '../lib/actionLayer';
 import {
   StatusPill,
   GameNotice,
@@ -93,7 +94,7 @@ function ResultChip({ entry }: { entry: LogEntry }) {
   }
 }
 
-function Backlog({ entries, emptyText }: { entries: LogEntry[]; emptyText: string }) {
+function Backlog({ entries, emptyText, latestAnchor }: { entries: LogEntry[]; emptyText: string; latestAnchor?: string }) {
   const { t } = useTranslation();
   if (entries.length === 0) return <EmptyState>{emptyText}</EmptyState>;
   return (
@@ -101,6 +102,7 @@ function Backlog({ entries, emptyText }: { entries: LogEntry[]; emptyText: strin
       {[...entries].reverse().map((e, i) => (
         <li
           key={`${e.round}-${i}`}
+          data-anchor={i === 0 ? latestAnchor : undefined}
           className={`flex items-start gap-3 p-3 rounded-2xl border ${i === 0 ? 'border-accent-line bg-accent-soft' : 'border-line bg-ground'}`}
         >
           <span className="mt-0.5 text-muted shrink-0" aria-hidden="true">
@@ -188,6 +190,54 @@ export function WhoAmIGameRoom() {
     setSeenOver(overNow);
     if (overNow) setSideOpen(false);
   }
+
+  // Fim de cada rodada: a resposta da sua pergunta aparece no seu histórico e quem acertou brilha na mesa
+  const logs = gameState?.logs;
+  const prevLogCounts = useRef<Record<string, number> | null>(null);
+  useEffect(() => {
+    if (!gameState) return;
+    const prev = prevLogCounts.current;
+    const counts: Record<string, number> = {};
+    Object.entries(gameState.logs || {}).forEach(([pid, list]) => (counts[pid] = list.length));
+    prevLogCounts.current = counts;
+    // Primeira vez que o estado chega (entrada ou reconexão): só registra
+    if (!prev) return;
+    // A mesa troca de tela na virada da rodada; espera ela aparecer
+    const delayMs = 450;
+    gameState.players.forEach((pid) => {
+      const list = gameState.logs?.[pid] || [];
+      if (list.length <= (prev[pid] || 0)) return;
+      const entry = list[list.length - 1];
+      const name = gameState.playerNames[pid] || '';
+      if (entry.result === 'correct') {
+        const secret = gameState.secrets[pid]?.text || '';
+        playAction({
+          to: `wa-tile-${pid}`,
+          effect: 'pulse',
+          delayMs,
+          caption: {
+            text: pid === myId ? t('whoami.action_you_solved', { secret }) : t('whoami.action_solved', { secret }),
+            actorName: name,
+            actorSeed: pid,
+            tone: 'success',
+          },
+        });
+      } else if (pid === myId && entry.kind === 'question') {
+        const label = t(`whoami.result_${entry.result}`);
+        playAction({
+          to: 'wa-mylog-latest',
+          effect: 'pulse',
+          delayMs,
+          caption: {
+            text: t('whoami.action_answer', { answer: label }),
+            tone: entry.result === 'yes' ? 'success' : entry.result === 'no' ? 'danger' : 'info',
+          },
+        });
+      } else if (pid === myId && entry.result === 'wrong') {
+        playAction({ to: 'wa-mylog-latest', effect: 'shake', delayMs, caption: { text: t('whoami.action_wrong_guess'), tone: 'danger' } });
+      }
+    });
+  }, [logs]);
 
   if (!gameState) {
     return (
@@ -541,6 +591,7 @@ export function WhoAmIGameRoom() {
     return (
       <li
         key={pid}
+        data-anchor={`wa-tile-${pid}`}
         className={`shrink-0 w-44 lg:w-auto flex flex-col gap-2 p-3 md:p-4 rounded-2xl border ${
           isMe ? 'border-accent-line bg-accent-soft' : 'border-line bg-surface'
         } ${online(pid) ? '' : 'opacity-60'}`}
@@ -666,6 +717,7 @@ export function WhoAmIGameRoom() {
       </section>
 
       <section
+        data-anchor="wa-mylog"
         className={`surface p-4 flex-col gap-3 min-h-0 flex-1 lg:flex-none lg:w-[380px] ${phase === 'ANSWERING' ? 'hidden lg:flex' : 'flex'}`}
         aria-labelledby="wa-log-title"
       >
@@ -681,7 +733,7 @@ export function WhoAmIGameRoom() {
           )}
         </div>
         <div className="min-h-0 overflow-y-auto pr-1">
-          <Backlog entries={gs.logs[myId] || []} emptyText={t('whoami.no_logs_yet')} />
+          <Backlog entries={gs.logs[myId] || []} emptyText={t('whoami.no_logs_yet')} latestAnchor="wa-mylog-latest" />
         </div>
       </section>
     </div>

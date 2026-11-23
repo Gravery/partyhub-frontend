@@ -17,6 +17,7 @@ import {
   PlayerRow,
   RulesList,
 } from '../components/game/ui';
+import { playAction } from '../lib/actionLayer';
 import { DndContext, closestCenter, type DragEndEvent, type DragStartEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, rectSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -82,7 +83,7 @@ function SortableCard({
   };
 
   return (
-    <div ref={setNodeRef} style={dndStyle} {...attributes} {...listeners} className="shrink-0">
+    <div ref={setNodeRef} style={dndStyle} {...attributes} {...listeners} data-anchor={`itto-card-${id}`} className="shrink-0">
       <motion.div
         ref={cardRef}
         layout={!isDragging}
@@ -213,6 +214,56 @@ export function IttoGameRoom() {
       sendMessage('SET_LANGUAGE', { language: i18n.language?.startsWith('pt') ? 'pt' : 'en' });
     }
   }, [i18n.language, gameState?.state]);
+
+  const viewerId = session?.user?.id || '';
+  const hasState = Boolean(gameState);
+
+  // Quem concorda com a ordem aparece na mesa, junto do botão de concordar
+  const sorted = gameState?.playerSorted;
+  const prevSorted = useRef<Record<string, boolean> | null>(null);
+  useEffect(() => {
+    if (!gameState) return;
+    const prev = prevSorted.current;
+    prevSorted.current = { ...(sorted || {}) };
+    if (!prev || gameState.state !== 'SORTING') return;
+    Object.keys(sorted || {}).forEach((pid) => {
+      if (sorted?.[pid] && !prev[pid] && pid !== viewerId) {
+        playAction({
+          to: 'itto-agree',
+          effect: 'pulse',
+          caption: { text: t('itto.action_agreed'), actorName: gameState.playerNames?.[pid] || '', actorSeed: pid, tone: 'success' },
+        });
+      }
+    });
+  }, [sorted]);
+
+  // Revelação: cada carta recebe o veredito quando termina de virar (pulso se está em ordem, tremor se quebrou)
+  const revealKey = gameState?.state === 'REVEALING' ? `${gameState.level}-${gameState.tableOrder.join(',')}` : null;
+  const seenReveal = useRef<string | null | undefined>(undefined);
+  useEffect(() => {
+    if (!gameState) return;
+    // Primeira vez que o estado chega (entrada ou reconexão): só registra
+    if (seenReveal.current === undefined) {
+      seenReveal.current = revealKey;
+      return;
+    }
+    if (!revealKey || revealKey === seenReveal.current) return;
+    seenReveal.current = revealKey;
+    const order = gameState.tableOrder;
+    const values = order.map((id) => gameState.publicHands[id]?.secret_value ?? 0);
+    // A carta i vira em i * 0,7 s e leva 0,8 s
+    const timers = values.map((value, i) =>
+      setTimeout(() => {
+        const broke = i > 0 && value < values[i - 1];
+        playAction({
+          to: `itto-card-${order[i]}`,
+          effect: broke ? 'shake' : 'pulse',
+          caption: broke ? { text: t('itto.action_out_of_order', { value, prev: values[i - 1] }), tone: 'danger' } : undefined,
+        });
+      }, i * 700 + 850)
+    );
+    return () => timers.forEach(clearTimeout);
+  }, [revealKey, hasState]);
 
   useEffect(() => {
     if (gameState?.state === 'WRITING') {
@@ -413,6 +464,7 @@ export function IttoGameRoom() {
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 shrink-0">
                 <button
                   type="button"
+                  data-anchor="itto-agree"
                   onClick={() => sendMessage('TOGGLE_READY_SORT')}
                   aria-pressed={iAgreed}
                   className={`btn ${iAgreed ? 'btn-success' : 'btn-secondary'}`}

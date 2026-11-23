@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useCahStore, type CahWhiteCard, type AnonymousSubmission } from '../store/useCahStore';
@@ -10,11 +10,13 @@ import { GameHeader } from '../components/game/GameHeader';
 import { type TabOption } from '../components/game/SideDrawer';
 import { GameLobby, type LobbyPlayer } from '../components/game/GameLobby';
 import { lobbyBlockReason } from '../lib/gameUi';
+import { playAction } from '../lib/actionLayer';
 import {
   StatusPill,
   GameNotice,
   ConnectionNotices,
   GameLoading,
+  Avatar,
   PlayerRow,
   RulesList,
   ResultModal,
@@ -78,6 +80,24 @@ function BlackCardView({ text, pick = 1, previewTexts }: { text?: string | null;
 }
 
 /** Carta branca: na mão (selecionável) ou na mesa. */
+/** Carta virada para baixo em voo até a mesa */
+function FaceDownToken() {
+  return (
+    <div className="w-full h-full rounded-xl bg-zinc-800 border border-zinc-600 shadow-xl shadow-black/50 flex items-center justify-center font-display font-bold text-xs text-zinc-400">
+      PH
+    </div>
+  );
+}
+
+/** Carta vencedora voando até o autor */
+function WinnerToken({ text }: { text: string }) {
+  return (
+    <div className="w-full h-full rounded-xl bg-amber-300 text-slate-950 border-2 border-white p-2 shadow-xl shadow-black/50 overflow-hidden">
+      <p className="font-bold text-xs leading-snug line-clamp-6">{text}</p>
+    </div>
+  );
+}
+
 function WhiteCardView({
   card,
   isSelected,
@@ -260,7 +280,6 @@ export function CahGameRoom() {
   const [czarHoveredTexts, setCzarHoveredTexts] = useState<string[] | null>(null);
   const [sideTab, setSideTab] = useState<SideTab>('players');
   const [sideOpen, setSideOpen] = useState(false);
-  const [showWinnerModal, setShowWinnerModal] = useState(false);
   const [showCustomModal, setShowCustomModal] = useState(false);
 
   useEffect(() => {
@@ -288,8 +307,59 @@ export function CahGameRoom() {
     setCzarSelectedSubId(null);
     setCzarHoveredTexts(null);
     clearWinnerToast();
-    if (gameState?.state === 'ROUND_REVEAL') setShowWinnerModal(true);
   }, [gameState?.roundNumber, gameState?.state]);
+
+  const viewerId = session?.user?.id || '';
+  const hasState = Boolean(gameState);
+
+  // Cada resposta enviada vira uma carta virada voando de quem jogou até a mesa
+  const submitted = gameState?.submittedStatus;
+  const prevSubmitted = useRef<Record<string, boolean> | null>(null);
+  useEffect(() => {
+    if (!gameState) return;
+    const prev = prevSubmitted.current;
+    prevSubmitted.current = { ...(submitted || {}) };
+    if (!prev || gameState.state !== 'SELECTING_ANSWERS') return;
+    Object.keys(submitted || {}).forEach((pid) => {
+      if (submitted?.[pid] && !prev[pid]) {
+        playAction({
+          from: pid === viewerId ? 'cah-hand' : `player-${pid}`,
+          fallbackFrom: `player-${pid}`,
+          to: 'cah-table',
+          token: <FaceDownToken />,
+          size: { w: 54, h: 78 },
+          effect: 'none',
+        });
+      }
+    });
+  }, [submitted]);
+
+  // Vencedor da rodada: a carta sobe da mesa e voa até o autor, que ganha +1
+  const winnerKey =
+    gameState?.state === 'ROUND_REVEAL' && gameState.roundWinner ? `${gameState.roundNumber}-${gameState.roundWinner.playerId}` : null;
+  const seenWinner = useRef<string | null | undefined>(undefined);
+  useEffect(() => {
+    if (!gameState) return;
+    // Primeira vez que o estado chega (entrada ou reconexão): só registra
+    if (seenWinner.current === undefined) {
+      seenWinner.current = winnerKey;
+      return;
+    }
+    if (!winnerKey || winnerKey === seenWinner.current) return;
+    seenWinner.current = winnerKey;
+    const w = gameState.roundWinner;
+    if (!w) return;
+    const text = w.cards?.map((c) => c.text).join(' + ') || w.card?.text || '';
+    playAction({
+      from: 'cah-winner',
+      to: `player-${w.playerId}`,
+      token: <WinnerToken text={text} />,
+      size: { w: 96, h: 132 },
+      effect: 'pulse',
+      delayMs: 350,
+      caption: { actorName: w.playerName, actorSeed: w.playerId, tone: 'success', text: t('cah.action_round_won') },
+    });
+  }, [winnerKey, hasState]);
 
   const handleCardClick = (cardId: string) => {
     cahAudio.playCardSelect();
@@ -565,7 +635,7 @@ export function CahGameRoom() {
                 )}
               </div>
 
-              <div className="w-full overflow-x-auto pt-3 pb-1">
+              <div className="w-full overflow-x-auto pt-3 pb-1" data-anchor="cah-hand">
                 <div className="flex gap-3 justify-start lg:justify-center min-w-max px-1">
                   {myHand.map((card) => {
                     let isSelected: boolean;
@@ -599,39 +669,6 @@ export function CahGameRoom() {
       }
       overlay={
         <>
-          <AnimatePresence>
-            {gameState.state === 'ROUND_REVEAL' && gameState.roundWinner && showWinnerModal && (
-              <ResultModal
-                key="round"
-                icon={<Crown size={32} />}
-                eyebrow={t('cah.round_winner_badge')}
-                title={gameState.roundWinner.playerName}
-                actions={
-                  <>
-                    <button type="button" onClick={() => setShowWinnerModal(false)} className="btn btn-secondary btn-lg sm:flex-1">
-                      <Eye size={18} />
-                      {t('cah.view_table')}
-                    </button>
-                    {(isCzar || isLeader) && (
-                      <button type="button" onClick={nextRound} className="btn btn-primary btn-lg sm:flex-1">
-                        {t('cah.next_round')}
-                        <ArrowRight size={18} />
-                      </button>
-                    )}
-                  </>
-                }
-              >
-                <blockquote className="w-full p-4 rounded-2xl bg-raised text-left">
-                  <span className="label-caps block mb-1">{t('cah.winning_answer')}</span>
-                  <p className="text-ink font-semibold">
-                    “{gameState.roundWinner.cards?.map((c) => c.text).join(' + ') || gameState.roundWinner.card?.text}”
-                  </p>
-                </blockquote>
-                {!(isCzar || isLeader) && <p className="text-sm text-muted">{t('cah.waiting_czar_advance', { name: gameState.czarName || '' })}</p>}
-              </ResultModal>
-            )}
-          </AnimatePresence>
-
           <AnimatePresence>
             {gameState.state === 'GAME_OVER' && (
               <ResultModal
@@ -752,7 +789,7 @@ export function CahGameRoom() {
             </div>
           )}
 
-          <div className="flex-1 w-full flex flex-col items-center justify-center min-h-0">
+          <div className="flex-1 w-full flex flex-col items-center justify-center min-h-0" data-anchor="cah-table">
             {gameState.state === 'SELECTING_ANSWERS' && (
               <div className="text-center space-y-3">
                 <span className="chip">{progress}</span>
@@ -820,7 +857,11 @@ export function CahGameRoom() {
                       gameState.allRevealedSubmissions?.map((sub, idx) => {
                         const cards = sub.cards && sub.cards.length > 0 ? sub.cards : [{ id: sub.cardId, text: sub.text }];
                         return (
-                          <div key={sub.submissionId || sub.cardId || `${sub.playerId}_${idx}`} className="flex gap-2">
+                          <div
+                            key={sub.submissionId || sub.cardId || `${sub.playerId}_${idx}`}
+                            data-anchor={sub.isWinner ? 'cah-winner' : undefined}
+                            className="flex gap-2"
+                          >
                             {cards.map((c, i) => (
                               <WhiteCardView
                                 key={c.id || i}
@@ -836,7 +877,7 @@ export function CahGameRoom() {
                   </div>
                 </div>
 
-                {gameState.state === 'ROUND_REVEAL' && !showWinnerModal && (isCzar || isLeader) && (
+                {gameState.state === 'ROUND_REVEAL' && (isCzar || isLeader) && (
                   <button type="button" onClick={nextRound} className="btn btn-primary btn-lg shrink-0">
                     {t('cah.next_round')}
                     <ArrowRight size={18} />
@@ -845,6 +886,29 @@ export function CahGameRoom() {
               </div>
             )}
           </div>
+
+          {/* Jogadores na mesa: de onde as cartas saem e para onde o ponto vai */}
+          <ul className="shrink-0 w-full flex flex-wrap justify-center gap-2" aria-label={t('cah.table_players')}>
+            {gameState.players.map((pid) => {
+              const played = gameState.state === 'SELECTING_ANSWERS' && Boolean(gameState.submittedStatus?.[pid]);
+              const isCzarHere = pid === gameState.czarId;
+              return (
+                <li
+                  key={pid}
+                  data-anchor={`player-${pid}`}
+                  className={`inline-flex items-center gap-2 pl-1 pr-3 py-1 rounded-full border ${
+                    isCzarHere ? 'border-amber-300/60 bg-amber-300/10' : 'border-line bg-surface'
+                  }`}
+                >
+                  <Avatar name={nameOf(pid)} seed={pid} size={28} />
+                  <span className="text-sm font-bold text-ink max-w-28 truncate">{pid === myId ? t('game.you') : nameOf(pid)}</span>
+                  {isCzarHere && <Crown size={14} className="text-amber-300" aria-label={t('cah.czar')} />}
+                  {played && <Check size={14} className="text-emerald-300" aria-label={t('cah.played')} />}
+                  <span className="font-mono text-sm font-bold text-accent">{gameState.scores?.[pid] || 0}</span>
+                </li>
+              );
+            })}
+          </ul>
         </div>
       )}
     </GameShell>

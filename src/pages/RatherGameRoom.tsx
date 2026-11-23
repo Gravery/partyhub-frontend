@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -17,6 +17,7 @@ import { GameHeader } from '../components/game/GameHeader';
 import { type TabOption } from '../components/game/SideDrawer';
 import { GameLobby, type LobbyPlayer } from '../components/game/GameLobby';
 import { lobbyBlockReason } from '../lib/gameUi';
+import { playAction } from '../lib/actionLayer';
 import {
   StatusPill,
   GameNotice,
@@ -136,6 +137,15 @@ function DilemmaStrip({ dilemma }: { dilemma: Dilemma }) {
   );
 }
 
+/** Pontos da rodada voando dos seus palpites até o seu placar */
+function PointsToken({ points }: { points: number }) {
+  return (
+    <div className="w-full h-full rounded-full bg-lime-300 text-lime-950 font-display font-bold text-lg flex items-center justify-center shadow-lg shadow-black/50">
+      +{points}
+    </div>
+  );
+}
+
 export function RatherGameRoom() {
   const { roomId } = useParams<{ roomId: string }>();
   const navigate = useNavigate();
@@ -184,6 +194,35 @@ export function RatherGameRoom() {
     setSeenOver(overNow);
     if (overNow) setSideOpen(false);
   }
+
+  // Revelação: as colunas pulsam com a divisão do grupo e seus acertos voam para o seu placar
+  const hasState = Boolean(gameState);
+  const phaseNow = gameState?.state;
+  const roundNow = gameState?.round;
+  const prevPhase = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (!gameState) return;
+    const prev = prevPhase.current;
+    prevPhase.current = gameState.state;
+    if (prev === undefined || prev === gameState.state || gameState.state !== 'REVEAL') return;
+    const pts = gameState.history[gameState.history.length - 1]?.points?.[myId] || 0;
+    const asked = gameState.guessNeeded?.[myId] || 0;
+    // A tela da revelação entra com transição; espera ela montar
+    playAction({ to: 'wr-col-A', alsoPulse: ['wr-col-B'], effect: 'pulse', delayMs: 700 });
+    if (asked > 0) {
+      playAction({
+        from: 'wr-myguesses',
+        to: pts > 0 ? 'wr-score' : 'wr-myguesses',
+        token: pts > 0 ? <PointsToken points={pts} /> : undefined,
+        size: { w: 64, h: 36 },
+        effect: pts > 0 ? 'pulse' : 'shake',
+        caption: {
+          text: pts > 0 ? t('rather.action_points', { count: pts, total: asked }) : t('rather.action_no_points', { total: asked }),
+          tone: pts > 0 ? 'success' : 'info',
+        },
+      });
+    }
+  }, [phaseNow, roundNow, hasState]);
 
   if (!gameState) {
     return (
@@ -240,7 +279,7 @@ export function RatherGameRoom() {
       );
   } else if (phase === 'REVEAL') {
     const mine = lastRound?.points?.[myId] || 0;
-    status = <StatusPill tone={mine > 0 ? 'success' : 'info'} title={t('rather.status_reveal', { count: mine })} detail={t('rather.status_reveal_detail', { total: gs.guessNeeded[myId] || 0 })} />;
+    status = <StatusPill tone={mine > 0 ? 'success' : 'info'} title={t('rather.status_reveal', { count: mine })} detail={t('rather.status_reveal_detail', { count: gs.guessNeeded[myId] || 0 })} />;
   }
 
   const stats = !isLobby ? (
@@ -248,7 +287,7 @@ export function RatherGameRoom() {
       <span className="chip shrink-0">
         {t('common.round')} {Math.max(gs.round, 1)}/{gs.totalRounds}
       </span>
-      <span className="chip chip-accent shrink-0">
+      <span className="chip chip-accent shrink-0" data-anchor="wr-score">
         {gs.scores[myId] || 0} {t('common.pts')}
       </span>
     </>
@@ -454,7 +493,7 @@ export function RatherGameRoom() {
               {(['A', 'B'] as RatherOption[]).map((o) => {
                 const who = gs.players.filter((p) => choices[p] === o);
                 return (
-                  <section key={o} className={`p-4 rounded-2xl border-2 flex flex-col gap-3 ${OPTION_STYLE[o].card}`}>
+                  <section key={o} data-anchor={`wr-col-${o}`} className={`p-4 rounded-2xl border-2 flex flex-col gap-3 ${OPTION_STYLE[o].card}`}>
                     <div className="flex items-start gap-3">
                       <OptionLetter option={o} />
                       <p className="flex-1 font-display font-bold text-lg text-ink leading-snug">{o === 'A' ? gs.dilemma!.a : gs.dilemma!.b}</p>
@@ -479,7 +518,7 @@ export function RatherGameRoom() {
 
       {/* Meus palpites e quem me leu */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 shrink-0">
-        <section className="surface p-4 flex flex-col gap-2">
+        <section className="surface p-4 flex flex-col gap-2" data-anchor="wr-myguesses">
           <h3 className="label-caps">{t('rather.my_guesses')}</h3>
           <ul className="flex flex-col gap-1.5">
             {gs.players

@@ -261,6 +261,9 @@ let activeRoomId = '';
 let activeToken = '';
 let reconnectTimeout: any = null;
 
+/** Conexão atual: eventos de conexões substituídas (ainda abrindo ou fechando) são ignorados */
+let currentWs: WebSocket | null = null;
+
 export const useWavelengthStore = create<WavelengthStore>((set, get) => ({
   socket: null,
   isConnected: false,
@@ -303,8 +306,12 @@ export const useWavelengthStore = create<WavelengthStore>((set, get) => ({
 
     try {
       const ws = new WebSocket(fullWsUrl);
+      const previousWs = currentWs;
+      currentWs = ws;
+      if (previousWs && previousWs !== ws) previousWs.close();
 
       ws.onopen = () => {
+        if (ws !== currentWs) return;
         set({
           isConnected: true,
           isReconnecting: false,
@@ -318,6 +325,7 @@ export const useWavelengthStore = create<WavelengthStore>((set, get) => ({
       };
 
       ws.onmessage = (event) => {
+        if (ws !== currentWs) return;
         try {
           const msg = JSON.parse(event.data);
 
@@ -388,6 +396,7 @@ export const useWavelengthStore = create<WavelengthStore>((set, get) => ({
       };
 
       ws.onclose = (event) => {
+        if (ws !== currentWs) return;
         set({ isConnected: false, socket: null });
 
         if (!event.wasClean && activeRoomId) {
@@ -406,6 +415,7 @@ export const useWavelengthStore = create<WavelengthStore>((set, get) => ({
       };
 
       ws.onerror = (err) => {
+        if (ws !== currentWs) return;
         console.error('Erro na conexão WebSocket do Wavelength:', err);
       };
 
@@ -416,6 +426,9 @@ export const useWavelengthStore = create<WavelengthStore>((set, get) => ({
   },
 
   disconnect: () => {
+    const closingWs = currentWs;
+    currentWs = null;
+    closingWs?.close();
     activeRoomId = '';
     activeToken = '';
     if (reconnectTimeout) {

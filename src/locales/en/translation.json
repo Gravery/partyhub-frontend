@@ -243,7 +243,9 @@
     "victory_title": "Victory!",
     "defeat_title": "Game over",
     "advance_level": "Go to level {{level}}",
-    "play_again": "Play again"
+    "play_again": "Play again",
+    "action_agreed": "agreed with the order",
+    "action_out_of_order": "out of order: {{value}} after {{prev}}"
   },
   "hanabi": {
     "lobby_desc": "2 to 5 players. The host picks a variant and everyone marks “I'm ready”.",
@@ -343,7 +345,14 @@
       "blue": "BLUE",
       "white": "WHT",
       "multicolor": "MULTI"
-    }
+    },
+    "action_played": "played {{color}} {{number}}",
+    "action_five": "completed the {{color}} firework! +1 clue",
+    "action_misplay": "misplayed {{color}} {{number}} · fuse {{fuses}}/3",
+    "action_discarded": "discarded {{color}} {{number}} · +1 clue",
+    "action_discarded_plain": "discarded a card · +1 clue",
+    "action_clue": "gave {{name}} a clue",
+    "action_clue_you": "gave you a clue"
   },
   "cah": {
     "game_title": "Cards Against Humanity",
@@ -395,7 +404,10 @@
     "next_round": "Next round",
     "waiting_czar_advance": "Waiting for {{name}} or the host to continue.",
     "champion_title": "Comedy champion",
-    "loading_table": "Loading the table…"
+    "loading_table": "Loading the table…",
+    "action_round_won": "won the round · +1",
+    "table_players": "Players at the table",
+    "played": "Already played"
   },
   "ludo": {
     "lobby_desc": "1 to 4 players. Empty seats can be filled with bots.",
@@ -439,7 +451,10 @@
     "continue_match": "Keep playing",
     "finish_match": "End match",
     "waiting_leader_podium": "Waiting for the host to decide.",
-    "champion_title": "Ludo champion"
+    "champion_title": "Ludo champion",
+    "action_capture": "captured {{captured}}",
+    "action_extra_six": "rolled a 6 · goes again",
+    "action_extra_capture": "captured · goes again"
   },
   "wavelength": {
     "connecting": "Connecting to the room…",
@@ -483,7 +498,11 @@
     "rating_good_title": "Good frequency",
     "rating_good_desc": "Some static, but solid scores.",
     "rating_low_title": "Noisy signal",
-    "rating_low_desc": "The waves crossed. Worth another try!"
+    "rating_low_desc": "The waves crossed. Worth another try!",
+    "action_clue": "gave the clue",
+    "action_points_one": "+{{count}} point for the team",
+    "action_points_other": "+{{count}} points for the team",
+    "action_no_points": "outside the bands · 0 points"
   },
   "whoami": {
     "title": "Who Am I?",
@@ -583,7 +602,11 @@
     "answer_irrelevant": "Doesn't matter",
     "answer_irrelevant_hint": "The question doesn't apply or makes no difference for what was picked",
     "result_irrelevant": "Doesn't matter",
-    "votes_breakdown": "{{yes}} yes · {{no}} no · {{irrelevant}} doesn't matter"
+    "votes_breakdown": "{{yes}} yes · {{no}} no · {{irrelevant}} doesn't matter",
+    "action_you_solved": "you're {{secret}}! Got it",
+    "action_solved": "got it: {{secret}}",
+    "action_answer": "Your question: {{answer}}",
+    "action_wrong_guess": "Wrong guess"
   },
   "rather": {
     "title": "Would You Rather?",
@@ -621,7 +644,6 @@
     "status_guess_detail_one": "{{count}} left",
     "status_guess_detail_other": "{{count}} left",
     "status_waiting_guesses": "Waiting for guesses",
-    "status_reveal_detail": "out of {{total}} guesses",
     "chose": "Picked",
     "choosing": "Picking…",
     "guessed": "Guesses",
@@ -661,6 +683,11 @@
     "status_reveal_other": "+{{count}} points",
     "total_points_one": "Total: {{count}} point",
     "total_points_other": "Total: {{count}} points",
-    "over_tie": "Tie: {{names}}"
+    "over_tie": "Tie: {{names}}",
+    "action_points_one": "+{{count}} point · {{count}}/{{total}} right",
+    "action_points_other": "+{{count}} points · {{count}}/{{total}} right",
+    "action_no_points": "no right guesses · 0/{{total}}",
+    "status_reveal_detail_one": "out of {{count}} guess",
+    "status_reveal_detail_other": "out of {{count}} guesses"
   }
 }

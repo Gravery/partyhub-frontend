@@ -97,6 +97,9 @@ let reconnectTimeout: any = null;
 let cursorCleanupInterval: any = null;
 let lastCursorSendTime = 0;
 
+/** Conexão atual: eventos de conexões substituídas (ainda abrindo ou fechando) são ignorados */
+let currentWs: WebSocket | null = null;
+
 export const useGameStore = create<GameStore>((set, get) => ({
   socket: null,
   isConnected: false,
@@ -161,8 +164,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const lang = i18n.language?.startsWith('pt') ? 'pt' : 'en';
     const wsUrl = `${wsBaseUrl}/${gameSlug}/${roomId}?token=${token}&lang=${lang}`;
     const ws = new WebSocket(wsUrl);
+    const previousWs = currentWs;
+    currentWs = ws;
+    if (previousWs && previousWs !== ws) previousWs.close();
 
     ws.onopen = () => {
+      if (ws !== currentWs) return;
       console.log('🔌 Conectado ao servidor do jogo!');
       set({ 
         socket: ws, 
@@ -176,6 +183,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     };
 
     ws.onmessage = (event) => {
+      if (ws !== currentWs) return;
       let data: any;
       try {
         data = JSON.parse(event.data);
@@ -291,6 +299,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     };
 
     ws.onclose = () => {
+      if (ws !== currentWs) return;
       console.log('🔌 Conexão com o servidor encerrada.');
       const currentAttempt = get().reconnectAttempt;
 
@@ -319,11 +328,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
     };
 
     ws.onerror = (error) => {
+      if (ws !== currentWs) return;
       console.error('WS Error:', error);
     };
   },
 
   disconnect: () => {
+    const closingWs = currentWs;
+    currentWs = null;
+    closingWs?.close();
     lastConnParams = null;
     if (reconnectTimeout) {
       clearTimeout(reconnectTimeout);

@@ -97,6 +97,9 @@ function wsBase(): string {
   return envWs;
 }
 
+/** Conexão atual: eventos de conexões substituídas (ainda abrindo ou fechando) são ignorados */
+let currentWs: WebSocket | null = null;
+
 export const useWhoAmIStore = create<WhoAmIStore>((set, get) => ({
   socket: null,
   isConnected: false,
@@ -118,13 +121,18 @@ export const useWhoAmIStore = create<WhoAmIStore>((set, get) => ({
 
     const lang = i18n.language?.startsWith('pt') ? 'pt' : 'en';
     const ws = new WebSocket(`${wsBase()}/whoami/${roomId}?token=${encodeURIComponent(token)}&lang=${lang}`);
+    const previousWs = currentWs;
+    currentWs = ws;
+    if (previousWs && previousWs !== ws) previousWs.close();
 
     ws.onopen = () => {
+      if (ws !== currentWs) return;
       set({ isConnected: true, isReconnecting: false, reconnectAttempt: 0, errorMsg: null });
       get().sendMessage('REQUEST_STATE');
     };
 
     ws.onmessage = (event) => {
+      if (ws !== currentWs) return;
       let msg: { type: string; payload: unknown };
       try {
         msg = JSON.parse(event.data);
@@ -165,6 +173,7 @@ export const useWhoAmIStore = create<WhoAmIStore>((set, get) => ({
     };
 
     ws.onclose = (event) => {
+      if (ws !== currentWs) return;
       set({ isConnected: false, socket: null });
       if (!event.wasClean && activeRoomId) {
         const attempt = get().reconnectAttempt;
@@ -179,6 +188,9 @@ export const useWhoAmIStore = create<WhoAmIStore>((set, get) => ({
   },
 
   disconnect: () => {
+    const closingWs = currentWs;
+    currentWs = null;
+    closingWs?.close();
     activeRoomId = '';
     activeToken = '';
     if (reconnectTimeout) {

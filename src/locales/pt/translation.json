@@ -243,7 +243,9 @@
     "victory_title": "Vitória!",
     "defeat_title": "Fim de jogo",
     "advance_level": "Ir para o nível {{level}}",
-    "play_again": "Jogar de novo"
+    "play_again": "Jogar de novo",
+    "action_agreed": "concordou com a ordem",
+    "action_out_of_order": "fora de ordem: {{value}} depois de {{prev}}"
   },
   "hanabi": {
     "lobby_desc": "2 a 5 jogadores. O anfitrião escolhe a variante e todos marcam “Estou pronto”.",
@@ -343,7 +345,14 @@
       "blue": "AZUL",
       "white": "BRAN",
       "multicolor": "MULT"
-    }
+    },
+    "action_played": "jogou {{color}} {{number}}",
+    "action_five": "completou o fogo {{color}}! +1 dica",
+    "action_misplay": "errou {{color}} {{number}} · pavio {{fuses}}/3",
+    "action_discarded": "descartou {{color}} {{number}} · +1 dica",
+    "action_discarded_plain": "descartou uma carta · +1 dica",
+    "action_clue": "deu uma dica para {{name}}",
+    "action_clue_you": "deu uma dica para você"
   },
   "cah": {
     "game_title": "Cartas Contra a Humanidade",
@@ -395,7 +404,10 @@
     "next_round": "Próxima rodada",
     "waiting_czar_advance": "Aguardando {{name}} ou o anfitrião avançar.",
     "champion_title": "Campeão da comédia",
-    "loading_table": "Carregando a mesa…"
+    "loading_table": "Carregando a mesa…",
+    "action_round_won": "venceu a rodada · +1",
+    "table_players": "Jogadores na mesa",
+    "played": "Já jogou"
   },
   "ludo": {
     "lobby_desc": "1 a 4 jogadores. Vagas vazias podem ser preenchidas por bots.",
@@ -439,7 +451,10 @@
     "continue_match": "Continuar disputa",
     "finish_match": "Encerrar partida",
     "waiting_leader_podium": "Aguardando o anfitrião decidir.",
-    "champion_title": "Campeão do Ludo"
+    "champion_title": "Campeão do Ludo",
+    "action_capture": "capturou {{captured}}",
+    "action_extra_six": "tirou 6 · joga de novo",
+    "action_extra_capture": "capturou · joga de novo"
   },
   "wavelength": {
     "connecting": "Conectando à sala…",
@@ -483,7 +498,11 @@
     "rating_good_title": "Boa frequência",
     "rating_good_desc": "Algumas oscilações, mas pontuações sólidas.",
     "rating_low_title": "Sinal com ruído",
-    "rating_low_desc": "As ondas se cruzaram. Vale tentar de novo!"
+    "rating_low_desc": "As ondas se cruzaram. Vale tentar de novo!",
+    "action_clue": "deu a pista",
+    "action_points_one": "+{{count}} ponto para a equipe",
+    "action_points_other": "+{{count}} pontos para a equipe",
+    "action_no_points": "fora das faixas · 0 ponto"
   },
   "whoami": {
     "title": "Quem Sou Eu?",
@@ -583,7 +602,11 @@
     "answer_irrelevant": "Não importa",
     "answer_irrelevant_hint": "A pergunta não se aplica ou não faz diferença para o que foi escolhido",
     "result_irrelevant": "Não importa",
-    "votes_breakdown": "{{yes}} sim · {{no}} não · {{irrelevant}} não importa"
+    "votes_breakdown": "{{yes}} sim · {{no}} não · {{irrelevant}} não importa",
+    "action_you_solved": "você é {{secret}}! Acertou",
+    "action_solved": "acertou: {{secret}}",
+    "action_answer": "Sua pergunta: {{answer}}",
+    "action_wrong_guess": "Palpite errado"
   },
   "rather": {
     "title": "Você Prefere?",
@@ -621,7 +644,6 @@
     "status_guess_detail_one": "falta {{count}}",
     "status_guess_detail_other": "faltam {{count}}",
     "status_waiting_guesses": "Aguardando palpites",
-    "status_reveal_detail": "de {{total}} palpites",
     "chose": "Já escolheu",
     "choosing": "Escolhendo…",
     "guessed": "Palpites",
@@ -661,6 +683,11 @@
     "status_reveal_other": "+{{count}} pontos",
     "total_points_one": "Total: {{count}} ponto",
     "total_points_other": "Total: {{count}} pontos",
-    "over_tie": "Empate: {{names}}"
+    "over_tie": "Empate: {{names}}",
+    "action_points_one": "+{{count}} ponto · acertos {{count}}/{{total}}",
+    "action_points_other": "+{{count}} pontos · acertos {{count}}/{{total}}",
+    "action_no_points": "nenhum acerto · 0/{{total}}",
+    "status_reveal_detail_one": "de {{count}} palpite",
+    "status_reveal_detail_other": "de {{count}} palpites"
   }
 }

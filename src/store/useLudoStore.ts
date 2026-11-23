@@ -188,8 +188,6 @@ interface LudoStore {
   errorMsg: string | null;
   isRollingAnimation: boolean;
   soundEnabled: boolean;
-  toastMessage: string | null;
-  extraTurnBanner: string | null;
 
   connect: (roomId: string, token: string) => void;
   disconnect: () => void;
@@ -205,13 +203,14 @@ interface LudoStore {
   restartGame: () => void;
   toggleSound: () => void;
   clearError: () => void;
-  clearToast: () => void;
-  clearExtraTurnBanner: () => void;
 }
 
 let activeRoomId = '';
 let activeToken = '';
 let reconnectTimeout: any = null;
+
+/** Conexão atual: eventos de conexões substituídas (ainda abrindo ou fechando) são ignorados */
+let currentWs: WebSocket | null = null;
 
 export const useLudoStore = create<LudoStore>((set, get) => ({
   socket: null,
@@ -222,8 +221,6 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
   errorMsg: null,
   isRollingAnimation: false,
   soundEnabled: true,
-  toastMessage: null,
-  extraTurnBanner: null,
 
   connect: (roomId: string, token: string) => {
     activeRoomId = roomId;
@@ -258,8 +255,12 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
     const lang = i18n.language?.startsWith('pt') ? 'pt' : 'en';
     const wsUrl = `${wsBaseUrl}/ludo/${roomId}?token=${token}&lang=${lang}`;
     const ws = new WebSocket(wsUrl);
+    const previousWs = currentWs;
+    currentWs = ws;
+    if (previousWs && previousWs !== ws) previousWs.close();
 
     ws.onopen = () => {
+      if (ws !== currentWs) return;
       console.log('🎲 Conectado à sala de Ludo:', roomId);
       set({
         socket: ws,
@@ -271,6 +272,7 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
     };
 
     ws.onmessage = (event) => {
+      if (ws !== currentWs) return;
       let data: any;
       try {
         data = JSON.parse(event.data);
@@ -291,35 +293,6 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
             setTimeout(() => set({ isRollingAnimation: false }), 450);
           }
 
-          if (nextState.lastMove) {
-            const lm = nextState.lastMove;
-            if (lm.captured && lm.capturedBy && lm.capturedPawn) {
-              const captor = lm.capturedBy;
-              set({
-                toastMessage: i18n.t('ludo.capture_banner', { captor, captured: lm.capturedPawn }),
-              });
-              ludoAudio.playCapture();
-              setTimeout(() => {
-                if (get().toastMessage?.includes(captor)) {
-                  set({ toastMessage: null });
-                }
-              }, 3500);
-            }
-
-            if (lm.isExtraTurn && lm.playerName) {
-              const banner =
-                lm.dice === 6
-                  ? i18n.t('ludo.extra_turn_banner', { name: lm.playerName })
-                  : i18n.t('ludo.extra_turn_capture_banner', { name: lm.playerName });
-              set({ extraTurnBanner: banner });
-              setTimeout(() => {
-                if (get().extraTurnBanner === banner) {
-                  set({ extraTurnBanner: null });
-                }
-              }, 2500);
-            }
-          }
-
           if (nextState.state === 'GAME_OVER' && prevState?.state !== 'GAME_OVER') {
             ludoAudio.playGoal();
           }
@@ -338,6 +311,7 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
     };
 
     ws.onclose = () => {
+      if (ws !== currentWs) return;
       console.warn('Conexão WS com o Ludo fechada. Tentando reconectar...');
       set({ socket: null, isConnected: false });
 
@@ -359,11 +333,15 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
     };
 
     ws.onerror = (err) => {
+      if (ws !== currentWs) return;
       console.error('Erro na conexão WebSocket do Ludo:', err);
     };
   },
 
   disconnect: () => {
+    const closingWs = currentWs;
+    currentWs = null;
+    closingWs?.close();
     if (reconnectTimeout) {
       clearTimeout(reconnectTimeout);
       reconnectTimeout = null;
@@ -378,8 +356,6 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
       isReconnecting: false,
       gameState: null,
       errorMsg: null,
-      toastMessage: null,
-      extraTurnBanner: null,
       reconnectAttempt: 0,
     });
   },
@@ -440,11 +416,4 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
     set({ errorMsg: null });
   },
 
-  clearToast: () => {
-    set({ toastMessage: null });
-  },
-
-  clearExtraTurnBanner: () => {
-    set({ extraTurnBanner: null });
-  },
 }));

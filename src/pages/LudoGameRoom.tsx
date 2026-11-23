@@ -18,6 +18,7 @@ import {
   ResultModal,
   EmptyState,
 } from '../components/game/ui';
+import { playAction } from '../lib/actionLayer';
 import {
   Users,
   BookOpen,
@@ -61,6 +62,7 @@ function DiceView({ value, isRolling, canRoll, onClick }: { value: number; isRol
   return (
     <motion.button
       type="button"
+      data-anchor="dice"
       disabled={!canRoll}
       onClick={onClick}
       aria-label={value > 0 ? t('ludo.dice_shows', { value }) : t('ludo.roll_dice')}
@@ -100,9 +102,7 @@ export function LudoGameRoom() {
     isReconnecting,
     reconnectAttempt,
     manualReconnect,
-    toastMessage,
     errorMsg,
-    extraTurnBanner,
     connect,
     disconnect,
     chooseColor,
@@ -113,7 +113,6 @@ export function LudoGameRoom() {
     restartGame,
     continueMatch,
     finishMatch,
-    clearToast,
     clearError,
     soundEnabled,
     toggleSound,
@@ -225,6 +224,43 @@ export function LudoGameRoom() {
       };
     }
   }, [gameState?.lastMove?.moveId]);
+
+  // Captura e jogada extra aparecem na mesa: legenda no peão que capturou (quando termina de andar) e no dado
+  const seenMoveId = useRef<number | null | undefined>(undefined);
+  const lastMoveId = gameState?.lastMove?.moveId ?? null;
+  const hasState = Boolean(gameState);
+  useEffect(() => {
+    if (!gameState) return;
+    // Primeira vez que o estado chega (entrada ou reconexão): só registra
+    if (seenMoveId.current === undefined) {
+      seenMoveId.current = lastMoveId;
+      return;
+    }
+    const lm = gameState.lastMove;
+    if (!lm || lastMoveId === seenMoveId.current) return;
+    seenMoveId.current = lastMoveId;
+    const walkMs = Math.max(0, lm.toStep - lm.fromStep) * 150 + 120;
+    if (lm.captured && lm.capturedPawn) {
+      playAction({
+        to: `pawn-${lm.playerId}_${lm.pawnIndex}`,
+        effect: 'pulse',
+        delayMs: walkMs,
+        caption: { text: t('ludo.action_capture', { captured: lm.capturedPawn }), actorName: lm.playerName, actorSeed: lm.playerId, tone: 'danger' },
+      });
+    }
+    if (lm.isExtraTurn) {
+      playAction({
+        to: 'dice',
+        effect: 'pulse',
+        caption: {
+          text: lm.dice === 6 ? t('ludo.action_extra_six') : t('ludo.action_extra_capture'),
+          actorName: lm.playerName,
+          actorSeed: lm.playerId,
+          tone: 'accent',
+        },
+      });
+    }
+  }, [lastMoveId, hasState]);
 
   const myId = user?.id || '';
   const activePlayer = gameState?.players[gameState.activePlayerIndex];
@@ -423,8 +459,6 @@ export function LudoGameRoom() {
       notices={
         <AnimatePresence>
           <ConnectionNotices key="conn" isReconnecting={isReconnecting} reconnectAttempt={reconnectAttempt} onReconnect={manualReconnect} />
-          {extraTurnBanner && <GameNotice key="extra" tone="info" title={extraTurnBanner} />}
-          {toastMessage && <GameNotice key="toast" tone="warning" title={toastMessage} onClose={clearToast} />}
           {errorMsg && <GameNotice key="err" tone="error" title={errorMsg} onClose={clearError} />}
         </AnimatePresence>
       }
@@ -663,6 +697,7 @@ export function LudoGameRoom() {
                   return (
                     <motion.div
                       key={pawnKey}
+                      data-anchor={`pawn-${pawnKey}`}
                       initial={false}
                       animate={{
                         top: `${(pos.row / 15) * 100}%`,
